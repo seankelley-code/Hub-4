@@ -5,3 +5,4 @@ data/
 gas/
 .clasp.json
 appsscript.json
+package-lock.json
