@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Audit Workspace</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #f0f2f5; color: #1a1a1a; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* Header */
+  .header {
+    background: #1a1a2e; color: #fff; flex-shrink: 0;
+    height: 56px; display: flex; align-items: center; padding: 0 20px; gap: 16px;
+  }
+  .btn-back { color: #9ca3af; text-decoration: none; font-size: 13px; display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+  .btn-back:hover { color: #fff; }
+  .header-divider { width: 1px; height: 24px; background: #374151; flex-shrink: 0; }
+  .header-info { flex: 1; min-width: 0; }
+  .header-title { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .header-entity { font-size: 11px; color: #9ca3af; }
+  .phase-progress { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
+  .phase-pip {
+    width: 28px; height: 5px; border-radius: 3px; background: #374151;
+    cursor: pointer; transition: background 0.15s;
+  }
+  .phase-pip.done   { background: #CD040B; }
+  .phase-pip.active { background: #ef4444; }
+
+  /* Layout */
+  .workspace { display: flex; flex: 1; min-height: 0; }
+
+  /* Left nav */
+  .phase-nav {
+    width: 200px; flex-shrink: 0; background: #fff;
+    border-right: 1px solid #e5e7eb; overflow-y: auto;
+    display: flex; flex-direction: column; padding: 12px 0;
+  }
+  .nav-section-label { font-size: 10px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.8px; padding: 10px 16px 6px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 16px; cursor: pointer; font-size: 13px; font-weight: 500; color: #6b7280;
+    border-left: 3px solid transparent; transition: all 0.15s;
+  }
+  .nav-item:hover { background: #f9fafb; color: #1a1a1a; }
+  .nav-item.active { color: #CD040B; border-left-color: #CD040B; background: #fff5f5; font-weight: 600; }
+  .nav-item.has-data .nav-dot { background: #10b981; }
+  .nav-dot { width: 6px; height: 6px; border-radius: 50%; background: #e5e7eb; flex-shrink: 0; }
+  .nav-num { font-size: 10px; color: #d1d5db; width: 14px; text-align: center; flex-shrink: 0; }
+
+  /* Center content */
+  .phase-content { flex: 1; overflow-y: auto; padding: 24px 28px; }
+  .phase-header { margin-bottom: 24px; }
+  .phase-header h2 { font-size: 20px; font-weight: 700; }
+  .phase-header p { font-size: 13px; color: #6b7280; margin-top: 4px; }
+
+  .form-section { margin-bottom: 28px; }
+  .form-section-title { font-size: 13px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid #f3f4f6; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .form-row.full { grid-template-columns: 1fr; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group label { font-size: 12px; font-weight: 600; color: #374151; }
+  .form-group input, .form-group textarea, .form-group select {
+    padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 7px;
+    font-size: 13px; font-family: inherit; background: #fff;
+    outline: none; transition: border 0.15s; resize: vertical;
+  }
+  .form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color: #CD040B; }
+  .form-group textarea { min-height: 80px; }
+
+  /* Phase nav actions */
+  .phase-actions { margin-top: 24px; display: flex; gap: 10px; }
+  .btn-phase {
+    padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    cursor: pointer; border: none; transition: all 0.15s;
+  }
+  .btn-save     { background: #f3f4f6; color: #374151; }
+  .btn-save:hover { background: #e5e7eb; }
+  .btn-next     { background: #CD040B; color: #fff; }
+  .btn-next:hover { background: #a50309; }
+  .save-indicator { font-size: 12px; color: #10b981; opacity: 0; transition: opacity 0.3s; display: flex; align-items: center; gap: 4px; }
+
+  /* Risk register table */
+  .risk-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .risk-table th { text-align: left; padding: 8px 10px; background: #f9fafb; border: 1px solid #e5e7eb; font-weight: 600; font-size: 11px; color: #6b7280; text-transform: uppercase; }
+  .risk-table td { padding: 8px 10px; border: 1px solid #e5e7eb; vertical-align: top; }
+  .risk-table td input, .risk-table td select { border: none; background: transparent; font-size: 13px; font-family: inherit; outline: none; width: 100%; padding: 0; }
+  .risk-table td select { cursor: pointer; }
+  .btn-add-row { font-size: 12px; color: #CD040B; background: none; border: 1px dashed #CD040B; padding: 5px 12px; border-radius: 6px; cursor: pointer; margin-top: 8px; }
+  .btn-remove-row { background: none; border: none; color: #d1d5db; cursor: pointer; font-size: 16px; padding: 0 4px; }
+  .btn-remove-row:hover { color: #CD040B; }
+
+  /* Archive checklist */
+  .checklist-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f3f4f6; font-size: 13px; }
+  .checklist-item:last-child { border-bottom: none; }
+  .checklist-item input[type=checkbox] { width: 16px; height: 16px; accent-color: #CD040B; cursor: pointer; }
+  .checklist-item.checked { text-decoration: line-through; color: #9ca3af; }
+
+  /* AI Chat Panel */
+  .ai-panel {
+    width: 380px; flex-shrink: 0; background: #fff;
+    border-left: 1px solid #e5e7eb;
+    display: flex; flex-direction: column; height: 100%;
+  }
+  .ai-header {
+    padding: 14px 16px; border-bottom: 1px solid #f3f4f6; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .ai-header-left { display: flex; align-items: center; gap: 10px; }
+  .ai-avatar {
+    width: 32px; height: 32px; background: #1a1a2e; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0;
+  }
+  .ai-label { font-size: 13px; font-weight: 600; color: #1a1a1a; }
+  .ai-sublabel { font-size: 11px; color: #9ca3af; }
+  .btn-clear-chat { background: none; border: none; color: #9ca3af; cursor: pointer; font-size: 12px; padding: 4px 8px; border-radius: 5px; }
+  .btn-clear-chat:hover { background: #f9fafb; color: #374151; }
+
+  .ai-messages { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+  .msg { font-size: 13px; line-height: 1.55; max-width: 100%; }
+  .msg-user {
+    align-self: flex-end; background: #1a1a2e; color: #fff;
+    padding: 10px 14px; border-radius: 12px 12px 2px 12px; max-width: 85%;
+  }
+  .msg-ai {
+    align-self: flex-start; background: #f0f2f5; color: #1a1a1a;
+    padding: 10px 14px; border-radius: 2px 12px 12px 12px; max-width: 95%;
+  }
+  .msg-ai strong { font-weight: 600; }
+  .msg-ai ul, .msg-ai ol { padding-left: 16px; margin: 4px 0; }
+  .msg-ai li { margin-bottom: 3px; }
+  .msg-ai pre { background: #1a1a2e; color: #e5e7eb; padding: 8px 10px; border-radius: 6px; font-size: 11px; overflow-x: auto; margin: 6px 0; }
+  .msg-ai code { background: #e5e7eb; padding: 1px 5px; border-radius: 3px; font-size: 11px; }
+  .msg-ai h1, .msg-ai h2, .msg-ai h3 { font-size: 13px; font-weight: 700; margin: 6px 0 3px; }
+  .msg-thinking { color: #9ca3af; font-style: italic; font-size: 12px; }
+
+  /* Welcome */
+  .ai-welcome { padding: 20px 14px; }
+  .ai-welcome h3 { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+  .ai-welcome p { font-size: 12px; color: #6b7280; line-height: 1.5; }
+
+  /* Quick actions */
+  .ai-quick { padding: 0 14px 10px; flex-shrink: 0; }
+  .ai-quick-label { font-size: 10px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .quick-grid { display: flex; flex-wrap: wrap; gap: 5px; }
+  .btn-quick {
+    font-size: 11px; background: #f0f2f5; color: #374151;
+    border: 1px solid #e5e7eb; border-radius: 20px;
+    padding: 4px 10px; cursor: pointer; transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn-quick:hover { background: #fff5f5; border-color: #CD040B; color: #CD040B; }
+
+  /* Input area */
+  .ai-input-area { padding: 12px 14px; border-top: 1px solid #f3f4f6; flex-shrink: 0; }
+  .ai-input-row { display: flex; gap: 8px; }
+  .ai-input {
+    flex: 1; padding: 9px 12px; border: 1px solid #e5e7eb; border-radius: 8px;
+    font-size: 13px; font-family: inherit; resize: none; min-height: 40px; max-height: 100px;
+    outline: none; transition: border 0.15s; line-height: 1.4;
+  }
+  .ai-input:focus { border-color: #CD040B; }
+  .btn-send {
+    width: 38px; height: 38px; background: #CD040B; color: #fff; border: none;
+    border-radius: 8px; cursor: pointer; font-size: 16px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s;
+  }
+  .btn-send:hover { background: #a50309; }
+  .btn-send:disabled { background: #d1d5db; cursor: not-allowed; }
+  .ai-sending-indicator { font-size: 11px; color: #9ca3af; padding: 4px 0; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <a class="btn-back" href="/">← Dashboard</a>
+  <div class="header-divider"></div>
+  <div class="header-info">
+    <div class="header-title" id="hdr-title">Loading…</div>
+    <div class="header-entity" id="hdr-entity"></div>
+  </div>
+  <div class="phase-progress" id="phase-progress"></div>
+</header>
+
+<!-- Workspace -->
+<div class="workspace">
+
+  <!-- Phase Nav -->
+  <nav class="phase-nav">
+    <div class="nav-section-label">Phases</div>
+    <div id="phase-nav"></div>
+  </nav>
+
+  <!-- Phase Content -->
+  <div class="phase-content" id="phase-content">
+    <div class="loading" style="padding:60px;text-align:center;color:#9ca3af;">Loading audit…</div>
+  </div>
+
+  <!-- AI Chat Panel -->
+  <div class="ai-panel">
+    <div class="ai-header">
+      <div class="ai-header-left">
+        <div class="ai-avatar">AI</div>
+        <div>
+          <div class="ai-label">Audit Assistant</div>
+          <div class="ai-sublabel" id="ai-context-label">Loading context…</div>
+        </div>
+      </div>
+      <button class="btn-clear-chat" onclick="clearChat()" title="Clear conversation">Clear</button>
+    </div>
+    <div class="ai-messages" id="ai-messages">
+      <div class="ai-welcome">
+        <h3>Hi, I'm your audit assistant.</h3>
+        <p>I have full context for this engagement — entity, phase, risk areas, findings, and more. Ask me anything or use the quick actions below.</p>
+      </div>
+    </div>
+    <div class="ai-quick">
+      <div class="ai-quick-label">Quick actions</div>
+      <div class="quick-grid" id="quick-actions"></div>
+    </div>
+    <div class="ai-input-area">
+      <div class="ai-input-row">
+        <textarea class="ai-input" id="ai-input" placeholder="Ask anything about this audit…" rows="1"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}"
+          oninput="autoGrow(this)"></textarea>
+        <button class="btn-send" id="btn-send" onclick="sendMessage()" title="Send">➤</button>
+      </div>
+      <div class="ai-sending-indicator" id="send-status"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const PHASES = ['discovery','planning','fieldwork','reporting','wrapup','followup'];
+const PHASE_LABEL = { discovery:'Discovery', planning:'Planning', fieldwork:'Fieldwork', reporting:'Reporting', wrapup:'Wrap-Up', followup:'Follow-Up' };
+const PHASE_DESC  = {
+  discovery: 'Define the audit universe, identify risks, and set scope.',
+  planning:  'Design objectives, test procedures, and the risk register.',
+  fieldwork: 'Execute tests, gather evidence, and document findings.',
+  reporting: 'Draft the audit report, opinion, and issue log.',
+  wrapup:    'Finalize MAPs, retrospective, and close the engagement.',
+  followup:  'Track remediation and close management action plans.',
+};
+const QUICK_ACTIONS = {
+  discovery: ['What risks should I consider?','Help me refine the scope','Draft a background summary','Who are the key stakeholders?'],
+  planning:  ['Draft audit objectives','Suggest test procedures','Help me build the risk register','What should be out of scope?'],
+  fieldwork: ['Help me document this finding','What follow-up tests should I run?','Draft a workstep','Analyze this exception'],
+  reporting: ['Draft an executive summary','Help me write a finding narrative','What recommendations should I include?','Review my draft'],
+  wrapup:    ['Draft a management response template','Guide me through the retrospective','What belongs in lessons learned?','Help with the archive checklist'],
+  followup:  ['How do I track MAP remediation?','Draft escalation language','What criteria close a finding?','Summarize open issues'],
+};
+
+const params  = new URLSearchParams(location.search);
+const auditId = params.get('id');
+let audit     = null;
+let saveTimer = null;
+
+// ── Load ──────────────────────────────────────────────────────────────────────
+
+async function load() {
+  if (!auditId) { location.href = '/'; return; }
+  const res = await fetch(`/api/audits/${auditId}`);
+  if (!res.ok) { location.href = '/'; return; }
+  audit = await res.json();
+  renderHeader();
+  renderPhaseNav();
+  renderPhase(audit.currentPhase);
+  renderQuickActions();
+  renderHistory();
+}
+
+function renderHeader() {
+  document.title = (audit.title || 'Audit') + ' — Workspace';
+  document.getElementById('hdr-title').textContent   = audit.title || 'Untitled Audit';
+  const entity = audit.discovery?.['disc-entity'];
+  document.getElementById('hdr-entity').textContent  = entity || '';
+  document.getElementById('ai-context-label').textContent = `${PHASE_LABEL[audit.currentPhase]} phase · ${entity || 'entity not set'}`;
+
+  const prog = document.getElementById('phase-progress');
+  const cur  = PHASES.indexOf(audit.currentPhase);
+  prog.innerHTML = PHASES.map((p, i) =>
+    `<div class="phase-pip ${i < cur ? 'done' : i === cur ? 'active' : ''}" title="${PHASE_LABEL[p]}" onclick="switchPhase('${p}')"></div>`
+  ).join('');
+}
+
+function renderPhaseNav() {
+  const nav = document.getElementById('phase-nav');
+  const cur = audit.currentPhase;
+  nav.innerHTML = PHASES.map((p, i) => {
+    const data = audit[p] || {};
+    const hasData = Object.values(data).some(v => v && (typeof v === 'string' ? v.trim() : (Array.isArray(v) ? v.length : Object.values(v).some(Boolean))));
+    return `
+      <div class="nav-item ${p === cur ? 'active' : ''} ${hasData ? 'has-data' : ''}" onclick="switchPhase('${p}')">
+        <span class="nav-num">${i+1}</span>
+        <span class="nav-dot"></span>
+        ${PHASE_LABEL[p]}
+      </div>`;
+  }).join('');
+}
+
+function renderQuickActions() {
+  const phase = audit.currentPhase;
+  const qDiv  = document.getElementById('quick-actions');
+  qDiv.innerHTML = (QUICK_ACTIONS[phase] || []).map(q =>
+    `<button class="btn-quick" onclick="useQuickAction(${JSON.stringify(q)})">${q}</button>`
+  ).join('');
+}
+
+function useQuickAction(text) {
+  document.getElementById('ai-input').value = text;
+  document.getElementById('ai-input').focus();
+}
+
+function switchPhase(phase) {
+  saveCurrentPhase();
+  audit.currentPhase = phase;
+  renderHeader();
+  renderPhaseNav();
+  renderPhase(phase);
+  renderQuickActions();
+  // Persist phase change
+  fetch(`/api/audits/${auditId}`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ currentPhase: phase }),
+  });
+}
+
+// ── Phase Forms ───────────────────────────────────────────────────────────────
+
+function renderPhase(phase) {
+  const content = document.getElementById('phase-content');
+  const d = audit[phase] || {};
+  const renderers = { discovery, planning, fieldwork, reporting, wrapup, followup };
+  content.innerHTML = `
+    <div class="phase-header">
+      <h2>${PHASE_LABEL[phase]}</h2>
+      <p>${PHASE_DESC[phase]}</p>
+    </div>
+    ${renderers[phase](d)}
+    <div class="phase-actions">
+      <button class="btn-phase btn-save" onclick="saveCurrentPhase(true)">Save</button>
+      ${phase !== 'followup' ? `<button class="btn-phase btn-next" onclick="goNextPhase()">Next Phase →</button>` : `<button class="btn-phase btn-next" onclick="saveCurrentPhase(true)">Finish ✓</button>`}
+      <span class="save-indicator" id="save-ok">✓ Saved</span>
+    </div>`;
+  // Bind auto-save
+  content.querySelectorAll('input,textarea,select').forEach(el => {
+    el.addEventListener('input', () => scheduleSave());
+    el.addEventListener('change', () => scheduleSave());
+  });
+}
+
+function fi(id, val) {
+  return `<input type="text" id="${id}" value="${esc(val||'')}" placeholder="">`;
+}
+function ta(id, val, rows=3) {
+  return `<textarea id="${id}" rows="${rows}">${esc(val||'')}</textarea>`;
+}
+function sel(id, val, opts) {
+  const options = opts.map(o => `<option ${o===val?'selected':''} value="${o}">${o}</option>`).join('');
+  return `<select id="${id}"><option value="">— select —</option>${options}</select>`;
+}
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function discovery(d) {
+  return `
+    <div class="form-section">
+      <div class="form-section-title">Engagement Details</div>
+      <div class="form-row">
+        <div class="form-group"><label>Audit Title</label>${fi('disc-title', d['disc-title'])}</div>
+        <div class="form-group"><label>Entity / Auditee</label>${fi('disc-entity', d['disc-entity'])}</div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Business Unit</label>${fi('disc-business-unit', d['disc-business-unit'])}</div>
+        <div class="form-group"><label>Audit Type</label>${sel('disc-audit-type', d['disc-audit-type'], ['Financial','Operational','Compliance','IT / Technology','Fraud','Special Investigation','Advisory'])}</div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Risk Category</label>${sel('disc-risk-category', d['disc-risk-category'], ['Financial Reporting','Operational','Compliance / Regulatory','Technology','Strategic','Fraud','Reputation'])}</div>
+        <div class="form-group" style="grid-column:span 1"><!-- spacer --></div>
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">Audit Period &amp; Team</div>
+      <div class="form-row">
+        <div class="form-group"><label>Period Start</label><input type="date" id="disc-period-start" value="${d['disc-period-start']||''}"></div>
+        <div class="form-group"><label>Period End</label><input type="date" id="disc-period-end" value="${d['disc-period-end']||''}"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Lead Auditor</label>${fi('disc-lead-auditor', d['disc-lead-auditor'])}</div>
+        <div class="form-group"><label>Audit Manager</label>${fi('disc-manager', d['disc-manager'])}</div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Team Members</label>${fi('disc-team-members', d['disc-team-members'])}</div>
+        <div class="form-group"><label>Key Stakeholders</label>${fi('disc-stakeholders', d['disc-stakeholders'])}</div>
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">Context &amp; Scope</div>
+      <div class="form-row full"><div class="form-group"><label>Background</label>${ta('disc-background', d['disc-background'], 4)}</div></div>
+      <div class="form-row full"><div class="form-group"><label>Risk Areas to Examine</label>${ta('disc-risk-areas', d['disc-risk-areas'], 3)}</div></div>
+      <div class="form-row full"><div class="form-group"><label>Audit Scope</label>${ta('disc-scope', d['disc-scope'], 3)}</div></div>
+    </div>`;
+}
+
+function planning(d) {
+  const reg = d['plan-risk-register'] || [];
+  const regRows = reg.map((r, i) => `
+    <tr>
+      <td><input type="text" id="risk-risk-${i}" value="${esc(r.risk||'')}" oninput="updateRiskRow(${i})"></td>
+      <td><select id="risk-rating-${i}" onchange="updateRiskRow(${i})">
+        ${['High','Medium','Low'].map(v => `<option ${r.rating===v?'selected':''}>${v}</option>`).join('')}
+      </select></td>
+      <td><input type="text" id="risk-control-${i}" value="${esc(r.control||'')}" oninput="updateRiskRow(${i})"></td>
+      <td><input type="text" id="risk-procedure-${i}" value="${esc(r.procedure||'')}" oninput="updateRiskRow(${i})"></td>
+      <td style="text-align:center"><button class="btn-remove-row" onclick="removeRiskRow(${i})">✕</button></td>
+    </tr>`).join('');
+  return `
+    <div class="form-section">
+      <div class="form-section-title">Objectives &amp; Scope</div>
+      <div class="form-row full"><div class="form-group"><label>Audit Objectives</label>${ta('plan-objectives', d['plan-objectives'], 4)}</div></div>
+      <div class="form-row full"><div class="form-group"><label>Detailed Scope</label>${ta('plan-scope', d['plan-scope'], 3)}</div></div>
+      <div class="form-row full"><div class="form-group"><label>Out of Scope</label>${ta('plan-out-of-scope', d['plan-out-of-scope'], 2)}</div></div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">Approach &amp; Resources</div>
+      <div class="form-row full"><div class="form-group"><label>Testing Approach</label>${ta('plan-testing-approach', d['plan-testing-approach'], 3)}</div></div>
+      <div class="form-row">
+        <div class="form-group"><label>Key Systems / Applications</label>${fi('plan-key-systems', d['plan-key-systems'])}</div>
+        <div class="form-group"><label>Estimated Resource Hours</label>${fi('plan-resource-hours', d['plan-resource-hours'])}</div>
+      </div>
+      <div class="form-row full"><div class="form-group"><label>Planning Notes</label>${ta('plan-notes', d['plan-notes'], 2)}</div></div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">Risk Register</div>
+      <table class="risk-table" id="risk-table">
+        <thead><tr><th style="width:28%">Risk</th><th style="width:10%">Rating</th><th style="width:27%">Mitigating Control</th><th style="width:27%">Planned Test Procedure</th><th style="width:8%"></th></tr></thead>
+        <tbody id="risk-tbody">${regRows}</tbody>
+      </table>
+      <button class="btn-add-row" onclick="addRiskRow()">+ Add Risk</button>
+    </div>`;
+}
+
+function fieldwork(d) {
+  const steps = d['fw-worksteps'] || [];
+  const stepsHtml = steps.map((s, i) => `
+    <tr>
+      <td><input type="text" id="fw-step-${i}" value="${esc(s.step||'')}" oninput="updateStep(${i})"></td>
+      <td><select id="fw-result-${i}" onchange="updateStep(${i})">
+        ${['','pass','exception','n/a'].map(v=>`<option ${s.result===v?'selected':''} value="${v}">${v||'—'}</option>`).join('')}
+      </select></td>
+      <td><input type="text" id="fw-notes-${i}" value="${esc(s.notes||'')}" oninput="updateStep(${i})"></td>
+      <td style="text-align:center"><button class="btn-remove-row" onclick="removeStep(${i})">✕</button></td>
+    </tr>`).join('');
+  return `
+    <div class="form-section">
+      <div class="form-section-title">Fieldwork Summary</div>
+      <div class="form-row full"><div class="form-group"><label>Status</label>${sel('fw-status', d['fw-status'], ['Not started','In progress','On hold','Complete'])}</div></div>
+      <div class="form-row full"><div class="form-group"><label>Evidence Gathered</label>${ta('fw-evidence', d['fw-evidence'], 3)}</div></div>
+      <div class="form-row full"><div class="form-group"><label>Technology Areas Tested</label>${ta('fw-tech-areas', d['fw-tech-areas'], 2)}</div></div>
+      <div class="form-row full"><div class="form-group"><label>Issues / Exceptions Identified</label>${ta('fw-issues', d['fw-issues'], 3)}</div></div>
+      <div class="form-row full"><div class="form-group"><label>Key Contacts</label>${fi('fw-contacts', d['fw-contacts'])}</div></div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">Work Steps</div>
+      <table class="risk-table" id="steps-table">
+        <thead><tr><th style="width:40%">Test Step</th><th style="width:12%">Result</th><th style="width:40%">Notes / Evidence Ref</th><th style="width:8%"></th></tr></thead>
+        <tbody id="steps-tbody">${stepsHtml}</tbody>
+      </table>
+      <button class="btn-add-row" onclick="addStep()">+ Add Step</button>
+    </div>`;
+}
+
+function reporting(d) {
+  const issues = d['rep-issues-log'] || [];
+  const issuesHtml = issues.map((iss, i) => `
+    <tr>
+      <td><input type="text" id="rep-title-${i}" value="${esc(iss.title||'')}" oninput="updateIssue(${i})"></td>
+      <td><select id="rep-risk-${i}" onchange="updateIssue(${i})">
+        ${['','High','Medium','Low','Informational'].map(v=>`<option ${iss.risk===v?'selected':''} value="${v}">${v||'—'}</option>`).join('')}
+      </select></td>
+      <td><input type="text" id="rep-rec-${i}" value="${esc(iss.recommendation||'')}" oninput="updateIssue(${i})"></td>
+      <td><select id="rep-status-${i}" onchange="updateIssue(${i})">
+        ${['','Open','Management Accepted','Closed'].map(v=>`<option ${iss.status===v?'selected':''} value="${v}">${v||'—'}</option>`).join('')}
+      </select></td>
+      <td style="text-align:center"><button class="btn-remove-row" onclick="removeIssue(${i})">✕</button></td>
+    </tr>`).join('');
+  return `
+    <div class="form-section">
+      <div class="form-section-title">Report Content</div>
+      <div class="form-row full"><div class="form-group"><label>Executive Summary</label>${ta('rep-exec-summary', d['rep-exec-summary'], 6)}</div></div>
+      <div class="form-row">
+        <div class="form-group"><label>Audit Opinion</label>${sel('rep-opinion', d['rep-opinion'], ['Clean / Satisfactory','Qualified','Adverse','Disclaimer'])}</div>
+        <div class="form-group"><label>Distribution List</label>${fi('rep-distribution', d['rep-distribution'])}</div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Vetting Status</label>${sel('rep-vetting', d['rep-vetting'], ['Draft','In Review','Management Review','Final'])}</div>
+        <div class="form-group"><label>Notes</label>${fi('rep-notes', d['rep-notes'])}</div>
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">Issues Log</div>
+      <table class="risk-table">
+        <thead><tr><th style="width:30%">Issue Title</th><th style="width:12%">Risk</th><th style="width:38%">Recommendation</th><th style="width:12%">Status</th><th style="width:8%"></th></tr></thead>
+        <tbody id="issues-tbody">${issuesHtml}</tbody>
+      </table>
+      <button class="btn-add-row" onclick="addIssue()">+ Add Issue</button>
+    </div>`;
+}
+
+function wrapup(d) {
+  const maps = d['wu-maps'] || [];
+  const chk  = d['wu-archive-checklist'] || {};
+  const mapsHtml = maps.map((m, i) => `
+    <tr>
+      <td><input type="text" id="map-title-${i}" value="${esc(m.title||'')}" oninput="updateMap(${i})"></td>
+      <td><input type="text" id="map-owner-${i}" value="${esc(m.owner||'')}" oninput="updateMap(${i})"></td>
+      <td><input type="date" id="map-due-${i}" value="${m.dueDate||''}" oninput="updateMap(${i})"></td>
+      <td><select id="map-status-${i}" onchange="updateMap(${i})">
+        ${['','Open','In Progress','Closed','Overdue'].map(v=>`<option ${m.status===v?'selected':''} value="${v}">${v||'—'}</option>`).join('')}
+      </select></td>
+      <td style="text-align:center"><button class="btn-remove-row" onclick="removeMap(${i})">✕</button></td>
+    </tr>`).join('');
+  const checklistHtml = Object.entries(chk).map(([label, checked]) => `
+    <div class="checklist-item ${checked?'checked':''}">
+      <input type="checkbox" id="chk-${label.replace(/\s+/g,'-')}" ${checked?'checked':''} onchange="updateChecklist()">
+      <label for="chk-${label.replace(/\s+/g,'-')}">${label}</label>
+    </div>`).join('');
+  return `
+    <div class="form-section">
+      <div class="form-section-title">Wrap-Up</div>
+      <div class="form-row">
+        <div class="form-group"><label>Final Audit Opinion</label>${sel('wu-final-opinion', d['wu-final-opinion'], ['Clean / Satisfactory','Qualified','Adverse','Disclaimer'])}</div>
+      </div>
+      <div class="form-row full"><div class="form-group"><label>Management Responses Summary</label>${ta('wu-mgmt-responses', d['wu-mgmt-responses'], 3)}</div></div>
+      <div class="form-row full"><div class="form-group"><label>Retrospective Notes</label>${ta('wu-retrospective', d['wu-retrospective'], 3)}</div></div>
+      <div class="form-row full"><div class="form-group"><label>Lessons Learned</label>${ta('wu-lessons', d['wu-lessons'], 3)}</div></div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">Management Action Plans (MAPs)</div>
+      <table class="risk-table">
+        <thead><tr><th style="width:35%">MAP Title</th><th style="width:20%">Owner</th><th style="width:18%">Due Date</th><th style="width:15%">Status</th><th style="width:12%"></th></tr></thead>
+        <tbody id="maps-tbody">${mapsHtml}</tbody>
+      </table>
+      <button class="btn-add-row" onclick="addMap()">+ Add MAP</button>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">Archive Checklist</div>
+      <div id="archive-checklist">${checklistHtml}</div>
+    </div>`;
+}
+
+function followup(d) {
+  const issues = d['fu-open-issues'] || [];
+  const issuesHtml = issues.map((iss, i) => `
+    <tr>
+      <td><input type="text" id="fu-map-${i}" value="${esc(iss.map||'')}" oninput="updateFUItem(${i})"></td>
+      <td><input type="text" id="fu-owner-${i}" value="${esc(iss.owner||'')}" oninput="updateFUItem(${i})"></td>
+      <td><input type="date" id="fu-due-${i}" value="${iss.dueDate||''}" oninput="updateFUItem(${i})"></td>
+      <td><select id="fu-status-${i}" onchange="updateFUItem(${i})">
+        ${['','Open','Remediated','Closed','Escalated'].map(v=>`<option ${iss.status===v?'selected':''} value="${v}">${v||'—'}</option>`).join('')}
+      </select></td>
+      <td><input type="text" id="fu-evidence-${i}" value="${esc(iss.evidence||'')}" oninput="updateFUItem(${i})"></td>
+      <td style="text-align:center"><button class="btn-remove-row" onclick="removeFUItem(${i})">✕</button></td>
+    </tr>`).join('');
+  return `
+    <div class="form-section">
+      <div class="form-section-title">Follow-Up Summary</div>
+      <div class="form-row full"><div class="form-group"><label>MAP Updates</label>${ta('fu-map-updates', d['fu-map-updates'], 3)}</div></div>
+      <div class="form-row full"><div class="form-group"><label>Remediation Status</label>${ta('fu-remediation', d['fu-remediation'], 3)}</div></div>
+      <div class="form-row full"><div class="form-group"><label>Escalations</label>${ta('fu-escalations', d['fu-escalations'], 2)}</div></div>
+      <div class="form-row full"><div class="form-group"><label>Conclusion</label>${ta('fu-conclusion', d['fu-conclusion'], 2)}</div></div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">Open Issues Tracker</div>
+      <table class="risk-table">
+        <thead><tr><th style="width:25%">MAP Ref</th><th style="width:15%">Owner</th><th style="width:14%">Due Date</th><th style="width:12%">Status</th><th style="width:26%">Evidence / Notes</th><th style="width:8%"></th></tr></thead>
+        <tbody id="fu-tbody">${issuesHtml}</tbody>
+      </table>
+      <button class="btn-add-row" onclick="addFUItem()">+ Add Item</button>
+    </div>`;
+}
+
+// ── Table helpers ─────────────────────────────────────────────────────────────
+
+function addRiskRow() {
+  if (!audit.planning['plan-risk-register']) audit.planning['plan-risk-register'] = [];
+  audit.planning['plan-risk-register'].push({ risk:'', rating:'Medium', control:'', procedure:'' });
+  renderPhase('planning'); scheduleSave();
+}
+function removeRiskRow(i) {
+  audit.planning['plan-risk-register'].splice(i, 1);
+  renderPhase('planning'); scheduleSave();
+}
+function updateRiskRow(i) {
+  const r = audit.planning['plan-risk-register'][i];
+  r.risk      = v(`risk-risk-${i}`);
+  r.rating    = v(`risk-rating-${i}`);
+  r.control   = v(`risk-control-${i}`);
+  r.procedure = v(`risk-procedure-${i}`);
+  scheduleSave();
+}
+
+function addStep() {
+  if (!audit.fieldwork['fw-worksteps']) audit.fieldwork['fw-worksteps'] = [];
+  audit.fieldwork['fw-worksteps'].push({ step:'', result:'', notes:'' });
+  renderPhase('fieldwork'); scheduleSave();
+}
+function removeStep(i) {
+  audit.fieldwork['fw-worksteps'].splice(i, 1);
+  renderPhase('fieldwork'); scheduleSave();
+}
+function updateStep(i) {
+  const s = audit.fieldwork['fw-worksteps'][i];
+  s.step   = v(`fw-step-${i}`);
+  s.result = v(`fw-result-${i}`);
+  s.notes  = v(`fw-notes-${i}`);
+  scheduleSave();
+}
+
+function addIssue() {
+  if (!audit.reporting['rep-issues-log']) audit.reporting['rep-issues-log'] = [];
+  audit.reporting['rep-issues-log'].push({ title:'', risk:'', recommendation:'', status:'' });
+  renderPhase('reporting'); scheduleSave();
+}
+function removeIssue(i) {
+  audit.reporting['rep-issues-log'].splice(i, 1);
+  renderPhase('reporting'); scheduleSave();
+}
+function updateIssue(i) {
+  const iss = audit.reporting['rep-issues-log'][i];
+  iss.title          = v(`rep-title-${i}`);
+  iss.risk           = v(`rep-risk-${i}`);
+  iss.recommendation = v(`rep-rec-${i}`);
+  iss.status         = v(`rep-status-${i}`);
+  scheduleSave();
+}
+
+function addMap() {
+  if (!audit.wrapup['wu-maps']) audit.wrapup['wu-maps'] = [];
+  audit.wrapup['wu-maps'].push({ title:'', owner:'', dueDate:'', status:'' });
+  renderPhase('wrapup'); scheduleSave();
+}
+function removeMap(i) {
+  audit.wrapup['wu-maps'].splice(i, 1);
+  renderPhase('wrapup'); scheduleSave();
+}
+function updateMap(i) {
+  const m = audit.wrapup['wu-maps'][i];
+  m.title   = v(`map-title-${i}`);
+  m.owner   = v(`map-owner-${i}`);
+  m.dueDate = v(`map-due-${i}`);
+  m.status  = v(`map-status-${i}`);
+  scheduleSave();
+}
+
+function updateChecklist() {
+  const chk = audit.wrapup['wu-archive-checklist'];
+  Object.keys(chk).forEach(label => {
+    const el = document.getElementById(`chk-${label.replace(/\s+/g,'-')}`);
+    if (el) chk[label] = el.checked;
+  });
+  scheduleSave();
+}
+
+function addFUItem() {
+  if (!audit.followup['fu-open-issues']) audit.followup['fu-open-issues'] = [];
+  audit.followup['fu-open-issues'].push({ map:'', owner:'', dueDate:'', status:'', evidence:'' });
+  renderPhase('followup'); scheduleSave();
+}
+function removeFUItem(i) {
+  audit.followup['fu-open-issues'].splice(i, 1);
+  renderPhase('followup'); scheduleSave();
+}
+function updateFUItem(i) {
+  const iss = audit.followup['fu-open-issues'][i];
+  iss.map      = v(`fu-map-${i}`);
+  iss.owner    = v(`fu-owner-${i}`);
+  iss.dueDate  = v(`fu-due-${i}`);
+  iss.status   = v(`fu-status-${i}`);
+  iss.evidence = v(`fu-evidence-${i}`);
+  scheduleSave();
+}
+
+function v(id) { const el = document.getElementById(id); return el ? el.value : ''; }
+
+// ── Save ──────────────────────────────────────────────────────────────────────
+
+function scheduleSave() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => saveCurrentPhase(false), 1200);
+}
+
+function saveCurrentPhase(showIndicator = false) {
+  const phase = audit.currentPhase;
+  const phaseData = {};
+  // Read all form fields for current phase
+  document.getElementById('phase-content').querySelectorAll('[id]').forEach(el => {
+    const id = el.id;
+    // Skip table rows that are handled separately
+    if (/^(risk-|fw-step|fw-result|fw-notes|rep-title|rep-risk|rep-rec|rep-status|map-title|map-owner|map-due|map-status|fu-map|fu-owner|fu-due|fu-status|fu-evidence|chk-)/.test(id)) return;
+    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') {
+      phaseData[id] = el.type === 'checkbox' ? el.checked : el.value;
+    }
+  });
+
+  // Merge into audit object (keep arrays which are managed separately)
+  const existing = audit[phase] || {};
+  Object.assign(existing, phaseData);
+  audit[phase] = existing;
+
+  // Update title from discovery
+  if (phase === 'discovery' && phaseData['disc-title']) {
+    audit.title = phaseData['disc-title'];
+    document.getElementById('hdr-title').textContent = audit.title;
+  }
+
+  fetch(`/api/audits/${auditId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ [phase]: audit[phase], title: audit.title }),
+  });
+
+  if (showIndicator) {
+    const ind = document.getElementById('save-ok');
+    if (ind) { ind.style.opacity = '1'; setTimeout(() => ind.style.opacity = '0', 1500); }
+  }
+}
+
+function goNextPhase() {
+  saveCurrentPhase(true);
+  const cur = PHASES.indexOf(audit.currentPhase);
+  if (cur < PHASES.length - 1) switchPhase(PHASES[cur + 1]);
+}
+
+// ── AI Chat ───────────────────────────────────────────────────────────────────
+
+function renderHistory() {
+  const msgs = document.getElementById('ai-messages');
+  const history = audit.chatHistory || [];
+  if (!history.length) return;
+  msgs.innerHTML = '';
+  history.forEach(m => appendMessage(m.role, m.content, false));
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function appendMessage(role, text, scroll = true) {
+  const msgs = document.getElementById('ai-messages');
+  const div  = document.createElement('div');
+  div.className = `msg msg-${role === 'user' ? 'user' : 'ai'}`;
+  if (role === 'user') {
+    div.textContent = text;
+  } else {
+    div.innerHTML = renderMarkdown(text);
+  }
+  msgs.appendChild(div);
+  if (scroll) msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+function renderMarkdown(text) {
+  return text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/```[\s\S]*?```/g, m => `<pre>${m.slice(3,-3).replace(/^[a-z]+\n/,'')}</pre>`)
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
+    .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+    .replace(/\n\n/g, '<br><br>')
+    .replace(/\n/g, '<br>');
+}
+
+async function sendMessage() {
+  const input = document.getElementById('ai-input');
+  const msg   = input.value.trim();
+  if (!msg) return;
+
+  // Save form state first so AI gets latest data
+  saveCurrentPhase(false);
+
+  input.value = '';
+  autoGrow(input);
+  document.getElementById('btn-send').disabled = true;
+  document.getElementById('send-status').textContent = 'AI is thinking…';
+
+  appendMessage('user', msg);
+
+  const aiDiv = document.getElementById('ai-messages').appendChild(document.createElement('div'));
+  aiDiv.className = 'msg msg-ai msg-thinking';
+  aiDiv.textContent = '…';
+  document.getElementById('ai-messages').scrollTop = document.getElementById('ai-messages').scrollHeight;
+
+  let fullText = '';
+  try {
+    const res = await fetch(`/api/audits/${auditId}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: msg }),
+    });
+
+    const reader   = res.body.getReader();
+    const decoder  = new TextDecoder();
+    let   buffer   = '';
+    aiDiv.className = 'msg msg-ai';
+    aiDiv.innerHTML = '';
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6);
+        if (data === '[DONE]') break;
+        const parsed = JSON.parse(data);
+        if (parsed.text) {
+          fullText += parsed.text;
+          aiDiv.innerHTML = renderMarkdown(fullText);
+          document.getElementById('ai-messages').scrollTop = document.getElementById('ai-messages').scrollHeight;
+        }
+        if (parsed.error) {
+          aiDiv.textContent = 'Error: ' + parsed.error;
+        }
+      }
+    }
+  } catch (e) {
+    aiDiv.textContent = 'Error: ' + e.message;
+  }
+
+  document.getElementById('btn-send').disabled = false;
+  document.getElementById('send-status').textContent = '';
+}
+
+async function clearChat() {
+  if (!confirm('Clear conversation history for this audit?')) return;
+  await fetch(`/api/audits/${auditId}/chat`, { method: 'DELETE' });
+  const msgs = document.getElementById('ai-messages');
+  msgs.innerHTML = '<div class="ai-welcome"><h3>Conversation cleared.</h3><p>Start a new conversation below.</p></div>';
+  if (audit) audit.chatHistory = [];
+}
+
+function autoGrow(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
+
+load();
+</script>
+</body>
+</html>

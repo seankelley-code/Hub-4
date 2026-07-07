@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Call That Connected — A VIA Methodology Story</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --red:    #CD040B;
+  --red2:   #ff2020;
+  --navy:   #0d0d1a;
+  --navy2:  #1a1a2e;
+  --white:  #ffffff;
+  --muted:  rgba(255,255,255,.65);
+  --card:   rgba(255,255,255,.06);
+  --border: rgba(255,255,255,.1);
+}
+
+html, body { width: 100%; height: 100%; overflow: hidden; background: var(--navy); font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; color: var(--white); }
+
+#progress-bar { position: fixed; top: 0; left: 0; height: 3px; background: var(--red); transition: width .4s ease; z-index: 100; }
+#counter { position: fixed; bottom: 22px; right: 28px; z-index: 100; font-size: 12px; color: rgba(255,255,255,.4); letter-spacing: .08em; }
+
+.nav-btn {
+  position: fixed; top: 50%; transform: translateY(-50%); z-index: 100;
+  width: 44px; height: 44px; border-radius: 50%;
+  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15);
+  color: rgba(255,255,255,.6); font-size: 18px; cursor: pointer;
+  transition: background .2s, color .2s;
+  display: flex; align-items: center; justify-content: center;
+}
+.nav-btn:hover { background: rgba(205,4,11,.4); color: white; border-color: rgba(205,4,11,.6); }
+#nav-prev { left: 16px; }
+#nav-next { right: 16px; }
+
+#deck { width: 100vw; height: 100vh; position: relative; }
+
+.slide {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  padding: 44px 90px;
+  opacity: 0; pointer-events: none;
+  transform: translateX(60px);
+  transition: opacity .45s ease, transform .45s ease;
+}
+.slide.active   { opacity: 1; pointer-events: all; transform: translateX(0); }
+.slide.prev-out { opacity: 0; transform: translateX(-60px); }
+
+.chapter    { font-size: 11px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--red); margin-bottom: 10px; }
+h2 { font-size: clamp(24px, 3vw, 36px); font-weight: 700; line-height: 1.15; }
+.rule { width: 56px; height: 4px; background: var(--red); border-radius: 2px; margin: 14px 0 18px; }
+
+.narrative {
+  border-left: 3px solid var(--red);
+  background: rgba(205,4,11,.06);
+  padding: 14px 20px;
+  font-size: 14.5px; font-style: italic; color: rgba(255,255,255,.82);
+  line-height: 1.55; margin-bottom: 4px;
+}
+
+.frost-row { display: flex; gap: 12px; margin-top: 4px; }
+.frost-card {
+  flex: 1; background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px 12px; text-align: center;
+}
+.frost-card .letter { font-size: 26px; font-weight: 900; color: var(--red); line-height: 1; }
+.frost-card .name   { font-size: 10.5px; font-weight: 700; margin-top: 6px; text-transform: uppercase; letter-spacing: .04em; }
+.frost-card .desc   { font-size: 10.5px; color: var(--muted); margin-top: 4px; line-height: 1.4; }
+
+.formula {
+  margin-top: 10px; text-align: center; font-size: 13px; color: var(--muted);
+  background: rgba(255,255,255,.04); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px;
+}
+.formula strong { color: #86efac; }
+
+.rule-box {
+  margin-top: 10px; display: flex; gap: 10px; align-items: flex-start;
+  background: rgba(255,255,255,.04); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 14px; font-size: 12px; color: var(--muted); line-height: 1.5;
+}
+.rule-box .tag { flex-shrink: 0; font-size: 10px; font-weight: 700; color: var(--red); background: rgba(205,4,11,.15); border: 1px solid rgba(205,4,11,.3); border-radius: 6px; padding: 2px 8px; }
+
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 4px; }
+.item-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px 16px;
+}
+.item-card h3 { font-size: 13px; font-weight: 700; margin-bottom: 5px; color: var(--white); }
+.item-card p  { font-size: 11.5px; color: var(--muted); line-height: 1.5; }
+.item-card .mini-tag { display: inline-block; margin-top: 6px; font-size: 10px; font-weight: 700; color: #86efac; background: rgba(74,222,128,.12); border: 1px solid rgba(74,222,128,.3); border-radius: 6px; padding: 2px 8px; }
+
+.gate {
+  margin-top: 10px; text-align: center;
+  background: rgba(205,4,11,.1); border: 1px solid rgba(205,4,11,.35);
+  border-radius: 10px; padding: 12px;
+  font-size: 12.5px; font-weight: 700; color: #ff9999; letter-spacing: .02em;
+}
+
+table.sample-table { width: 100%; margin-top: 8px; border-collapse: separate; border-spacing: 0; font-size: 11.5px; }
+table.sample-table th, table.sample-table td { padding: 7px 10px; text-align: left; }
+table.sample-table thead th { font-size: 9.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--border); }
+table.sample-table tbody tr:nth-child(odd) td { background: rgba(255,255,255,.03); }
+table.sample-table tbody td:first-child { border-radius: 6px 0 0 6px; color: var(--muted); }
+table.sample-table tbody td:last-child { border-radius: 0 6px 6px 0; }
+table.sample-table tbody td { color: #d4d4e8; }
+table.sample-table tbody td strong { color: #86efac; }
+
+.stat-strip { display: flex; gap: 10px; margin-top: 10px; }
+.stat-pill { flex: 1; text-align: center; background: rgba(255,255,255,.04); border: 1px solid var(--border); border-radius: 8px; padding: 8px 6px; }
+.stat-pill .n { font-size: 16px; font-weight: 800; color: var(--red); }
+.stat-pill .l { font-size: 9.5px; color: var(--muted); margin-top: 2px; }
+
+.closer {
+  margin-top: 12px; text-align: center; font-size: 15px; font-weight: 700; color: var(--white);
+  border-top: 1px solid var(--border); padding-top: 12px;
+}
+.closer span { color: var(--red); }
+
+.slide-body { width: 100%; max-width: 940px; }
+
+#toolbar {
+  position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 4px;
+  background: rgba(10,10,18,.88); backdrop-filter: blur(14px);
+  border: 1px solid rgba(255,255,255,.13); border-radius: 32px;
+  padding: 5px 8px; z-index: 200; white-space: nowrap;
+}
+#toolbar button {
+  padding: 7px 18px; border-radius: 24px; border: none;
+  background: transparent; color: rgba(255,255,255,.65);
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  transition: background .15s, color .15s;
+}
+#toolbar button:hover    { background: rgba(205,4,11,.28); color: white; }
+#toolbar button:disabled { opacity: .45; cursor: not-allowed; }
+#toolbar .tdiv { width: 1px; height: 18px; background: rgba(255,255,255,.15); margin: 0 2px; }
+
+#pdfOverlay {
+  display: none; position: fixed; inset: 0; z-index: 600;
+  background: rgba(0,0,0,.8); backdrop-filter: blur(8px);
+  align-items: center; justify-content: center; flex-direction: column; gap: 20px;
+}
+#pdfOverlay p { font-size: 15px; color: var(--muted); }
+.spinner {
+  width: 44px; height: 44px; border: 3px solid rgba(255,255,255,.1);
+  border-top-color: var(--red); border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+<div id="counter">1 / 4</div>
+<button class="nav-btn" id="nav-prev" onclick="go(-1)">&#8592;</button>
+<button class="nav-btn" id="nav-next" onclick="go(1)">&#8594;</button>
+
+<div id="deck">
+
+  <!-- Slide 1 — Risk Register -->
+  <div class="slide active" id="s1" style="background: radial-gradient(ellipse at 60% 30%, #2a0005 0%, var(--navy) 65%);">
+    <div class="slide-body">
+      <div class="narrative">"On a dark stretch of highway last December, a woman named Patricia dialed 911 with one bar of signal. The call connected. Help came in time. She never learned a single name of the people who made sure the network, the billing system, the access controls were exactly where they should be that night. This is the work behind that call — told in four documents."</div>
+      <div class="chapter">Chapter One &middot; Planning Phase</div>
+      <h2>The Risk Register: Naming the Danger Before It Arrives</h2>
+      <div class="rule"></div>
+      <p style="font-size:12.5px;color:var(--muted);margin-bottom:6px;">Before a single test is run, the team walks the process end-to-end, documents every in-scope risk, and scores it across five dimensions — FROST.</p>
+      <div class="frost-row">
+        <div class="frost-card"><div class="letter">F</div><div class="name">Financial</div><div class="desc">Estimated $ impact: &lt;$5M (1) to &gt;$100M (5)</div></div>
+        <div class="frost-card"><div class="letter">R</div><div class="name">Regulatory</div><div class="desc">Risk of fines, lawsuits, legal exposure</div></div>
+        <div class="frost-card"><div class="letter">O</div><div class="name">Operational</div><div class="desc">Process complexity, maturity, change</div></div>
+        <div class="frost-card"><div class="letter">S</div><div class="name">Strategic</div><div class="desc">Press, customer trust, reputational fallout</div></div>
+        <div class="frost-card"><div class="letter">T</div><div class="name">Technology</div><div class="desc">Reliance on systems; cyber &amp; access risk</div></div>
+      </div>
+      <div class="formula">F + R + O + S + T = <strong>Inherent Risk Score</strong> &times; Mitigating Control Factor = <strong>Residual Risk Score</strong></div>
+      <div class="rule-box"><span class="tag">STOP RULE</span><span>Every control gets a walkthrough and a "test of one." If the design fails right there, testing stops — it's logged immediately as a missing control, not buried until fieldwork ends.</span></div>
+    </div>
+  </div>
+
+  <!-- Slide 2 — Document Request List -->
+  <div class="slide" id="s2" style="background: var(--navy2);">
+    <div class="slide-body">
+      <div class="narrative">"You can't protect what you haven't looked at. So the team asks — for the access logs, the sign-off approvals, the records nobody thought anyone would read twice."</div>
+      <div class="chapter">Chapter Two &middot; Fieldwork</div>
+      <h2>The Document Request List: Asking For the Truth, Precisely</h2>
+      <div class="rule"></div>
+      <div class="grid2">
+        <div class="item-card">
+          <h3>Source Documents, Not Screenshots</h3>
+          <p>Evidence must allow a third party to re-perform the test independently. Every source document is linked in the workpaper and stored in Google Drive — never attached directly in Optro.</p>
+          <span class="mini-tag">Re-performable</span>
+        </div>
+        <div class="item-card">
+          <h3>Redaction Before Retention</h3>
+          <p>All sensitive data is redacted before anything is saved. A document request is a request for truth, not for exposure — respect for the KPO's data is part of the ask.</p>
+          <span class="mini-tag">Privacy first</span>
+        </div>
+        <div class="item-card">
+          <h3>Minimum Evidence Standard</h3>
+          <p>For every control tested: one passing sample retained as evidence, plus documentation of every single exception found — no averaging away the outliers.</p>
+          <span class="mini-tag">One pass + all exceptions</span>
+        </div>
+        <div class="item-card">
+          <h3>Scoped, Not Scattershot</h3>
+          <p>Requests map directly to the Risk Register — every document asked for exists to test a specific, named risk. Nothing is requested "just in case."</p>
+          <span class="mini-tag">No scope creep</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 3 — Data Verification -->
+  <div class="slide" id="s3" style="background: var(--navy);">
+    <div class="slide-body">
+      <div class="narrative">"A sample built on a broken population is just a guess wearing a lab coat. Before anyone can trust a number, someone has to verify it's real."</div>
+      <div class="chapter">Chapter Three &middot; Fieldwork</div>
+      <h2>Data Verification: Trust, But Verify — Every Time</h2>
+      <div class="rule"></div>
+      <div class="grid2">
+        <div class="item-card">
+          <h3>Completeness</h3>
+          <p>Reconcile the count and dollar value of the population back to the system of record. If the population is missing rows, every conclusion built on top of it is already wrong.</p>
+        </div>
+        <div class="item-card">
+          <h3>Accuracy</h3>
+          <p>Match the data against the true source — not a report about the source. Data pulled by the entity itself (IPE) always requires this validation before it can be relied on.</p>
+        </div>
+      </div>
+      <div class="gate">C&amp;A validation is a hard gate — no sampling begins until completeness and accuracy are both confirmed.</div>
+    </div>
+  </div>
+
+  <!-- Slide 4 — Sampling Methods -->
+  <div class="slide" id="s4" style="background: radial-gradient(ellipse at 30% 60%, #1a0002 0%, var(--navy) 65%);">
+    <div class="slide-body">
+      <div class="chapter">Chapter Four &middot; Fieldwork</div>
+      <h2>Sampling Methods: How Few You Can Check and Still Be Sure</h2>
+      <div class="rule"></div>
+      <table class="sample-table">
+        <thead><tr><th>Control Frequency</th><th>Standard Sample</th><th>Lower Risk Sample</th></tr></thead>
+        <tbody>
+          <tr><td>Daily / many times daily</td><td><strong>25</strong></td><td>10</td></tr>
+          <tr><td>Weekly</td><td><strong>5</strong></td><td>2</td></tr>
+          <tr><td>Monthly / Quarterly</td><td><strong>2</strong></td><td>1</td></tr>
+          <tr><td>Annual</td><td><strong>1</strong></td><td>1</td></tr>
+        </tbody>
+      </table>
+      <div class="stat-strip">
+        <div class="stat-pill"><div class="n">90%</div><div class="l">Confidence level</div></div>
+        <div class="stat-pill"><div class="n">&plusmn;10%</div><div class="l">Margin of error</div></div>
+        <div class="stat-pill"><div class="n">55</div><div class="l">High-evidence accept-reject size</div></div>
+        <div class="stat-pill"><div class="n">Raosoft</div><div class="l">Statistical calculator used</div></div>
+      </div>
+      <div class="closer">Patricia will never read a sample size table. But months before her call connected, a team sampled just enough to know — with real confidence — the system would hold. <span>It held.</span></div>
+    </div>
+  </div>
+
+</div><!-- /deck -->
+
+<div id="toolbar">
+  <button id="btnPdf" onclick="downloadAsPDF()">&#11015; Download PDF</button>
+  <div class="tdiv"></div>
+  <button id="btnPptx" onclick="downloadAsPPTX()">&#11015; PowerPoint</button>
+</div>
+
+<div id="pdfOverlay">
+  <div class="spinner"></div>
+  <p id="pdfStatus">Generating slide 1 of 4&hellip;</p>
+</div>
+
+<script>
+const slides = document.querySelectorAll('.slide');
+const bar    = document.getElementById('progress-bar');
+const ctr    = document.getElementById('counter');
+let   cur    = 0;
+
+function go(dir) {
+  const next = cur + dir;
+  if (next < 0 || next >= slides.length) return;
+
+  slides[cur].classList.remove('active');
+  slides[cur].classList.add('prev-out');
+  setTimeout(() => slides[cur].classList.remove('prev-out'), 460);
+
+  cur = next;
+  slides[cur].classList.add('active');
+
+  bar.style.width = ((cur + 1) / slides.length * 100) + '%';
+  ctr.textContent = `${cur + 1} / ${slides.length}`;
+  document.getElementById('nav-prev').style.opacity = cur === 0 ? '0' : '1';
+  document.getElementById('nav-next').style.opacity = cur === slides.length - 1 ? '0' : '1';
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); go(1); }
+  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')                    { e.preventDefault(); go(-1); }
+});
+
+let tx = 0;
+document.addEventListener('touchstart', e => { tx = e.touches[0].clientX; });
+document.addEventListener('touchend',   e => {
+  const dx = tx - e.changedTouches[0].clientX;
+  if (Math.abs(dx) > 40) go(dx > 0 ? 1 : -1);
+});
+
+bar.style.width = (1 / slides.length * 100) + '%';
+document.getElementById('nav-prev').style.opacity = '0';
+
+async function captureAllSlides(statusEl) {
+  const W = window.innerWidth, H = window.innerHeight;
+  const savedCur = cur;
+  const imgs = [];
+  document.getElementById('deck').style.transition = 'none';
+
+  for (let i = 0; i < slides.length; i++) {
+    statusEl.textContent = `Capturing slide ${i + 1} of ${slides.length}…`;
+    slides.forEach((s, idx) => {
+      s.style.transition = 'none';
+      s.style.opacity = idx === i ? '1' : '0';
+      s.style.transform = 'none';
+      s.style.pointerEvents = 'none';
+    });
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    await new Promise(r => setTimeout(r, 60));
+    const canvas = await html2canvas(document.body, {
+      width: W, height: H, scale: 2,
+      useCORS: false, logging: false, backgroundColor: null,
+      ignoreElements: el => el.id === 'pdfOverlay' || el.id === 'toolbar',
+    });
+    imgs.push({ dataUrl: canvas.toDataURL('image/jpeg', 0.95), w: W, h: H });
+  }
+
+  slides.forEach((s, idx) => {
+    s.style.transition = '';
+    s.style.opacity = idx === savedCur ? '1' : '0';
+    s.style.transform = idx === savedCur ? 'translateX(0)' : 'translateX(60px)';
+    s.style.pointerEvents = '';
+  });
+
+  return imgs;
+}
+
+async function downloadAsPDF() {
+  if (!window.html2canvas || !window.jspdf) { alert('PDF libraries are still loading — please wait a moment and try again.'); return; }
+  const overlay = document.getElementById('pdfOverlay');
+  const statusEl = document.getElementById('pdfStatus');
+  const btnPdf = document.getElementById('btnPdf');
+  const btnPptx = document.getElementById('btnPptx');
+  btnPdf.disabled = btnPptx.disabled = true;
+  overlay.style.display = 'flex';
+  try {
+    const imgs = await captureAllSlides(statusEl);
+    const SCALE = 2;
+    const { jsPDF } = window.jspdf;
+    const pW = imgs[0].w * SCALE, pH = imgs[0].h * SCALE;
+    const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [pW, pH], compress: true });
+    imgs.forEach((img, i) => {
+      if (i > 0) pdf.addPage([pW, pH], 'landscape');
+      pdf.addImage(img.dataUrl, 'JPEG', 0, 0, pW, pH);
+    });
+    pdf.save('VIA-Methodology-Story.pdf');
+  } catch (err) {
+    alert('PDF generation failed: ' + err.message);
+  } finally {
+    overlay.style.display = 'none';
+    btnPdf.disabled = btnPptx.disabled = false;
+  }
+}
+
+async function downloadAsPPTX() {
+  if (!window.html2canvas) { alert('html2canvas is still loading — please wait a moment and try again.'); return; }
+  const overlay = document.getElementById('pdfOverlay');
+  const statusEl = document.getElementById('pdfStatus');
+  const btnPdf = document.getElementById('btnPdf');
+  const btnPptx = document.getElementById('btnPptx');
+  btnPdf.disabled = btnPptx.disabled = true;
+  overlay.style.display = 'flex';
+  try {
+    const imgs = await captureAllSlides(statusEl);
+    statusEl.textContent = 'Building PowerPoint file…';
+    const res = await fetch('/api/presentation/pptx', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slides: imgs.map(i => i.dataUrl) }),
+    });
+    if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || 'Server error'); }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'VIA-Methodology-Story.pptx';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  } catch (err) {
+    alert('PowerPoint export failed: ' + err.message);
+  } finally {
+    overlay.style.display = 'none';
+    btnPdf.disabled = btnPptx.disabled = false;
+  }
+}
+</script>
+</body>
+</html>
