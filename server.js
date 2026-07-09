@@ -1133,6 +1133,8 @@ app.post('/api/audits/:id/chat', async (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders();
 
   const history = (audit.chatHistory || []).slice(-30);
   const messages = [
@@ -1210,6 +1212,8 @@ app.post('/api/audits/:id/gen-drl', async (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders();
 
   const rrSummary = rrRows.map(r => {
     const parts = [];
@@ -1273,6 +1277,8 @@ app.post('/api/audits/:id/war-room', async (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders();
 
   const write = (obj) => res.write(`data: ${JSON.stringify(obj)}\n\n`);
 
@@ -1470,6 +1476,8 @@ app.post('/api/validate-document', upload.single('file'), async (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders();
 
   const emit = (obj) => res.write(`data: ${JSON.stringify(obj)}\n\n`);
 
