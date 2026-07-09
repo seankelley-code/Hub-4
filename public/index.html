@@ -3527,6 +3527,7 @@
           try {
             const p = JSON.parse(data);
             if (p.text) { text += p.text; bubble.innerHTML = renderMD(text); msgs.scrollTop = msgs.scrollHeight; }
+            if (p.error) { text += `\n\n⚠️ Error: ${p.error}`; bubble.innerHTML = renderMD(text); }
             if (p.tool_call) {
               const summary = executeToolCall(p.tool_call);
               if (summary) fillSummary.push(summary);

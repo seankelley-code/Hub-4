@@ -1149,7 +1149,7 @@ app.post('/api/audits/:id/chat', async (req, res) => {
   try {
     const stream = await client.messages.stream({
       model: 'claude-sonnet-4-6',
-      max_tokens: 16000,
+      max_tokens: 8000,
       system: buildSystemPrompt(audit, focusPhase, activeTab),
       tools: AUDIT_TOOLS,
       tool_choice: { type: 'auto' },
