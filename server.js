@@ -28,7 +28,7 @@ require('dotenv').config({
 
 const app    = express();
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const PORT   = 3003;
+const PORT   = process.env.PORT || 3003;
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
