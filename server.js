@@ -41,6 +41,8 @@ function readAudits() {
 }
 
 function writeAudits(data) {
+  const dir = path.dirname(AUDITS_FILE);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(AUDITS_FILE, JSON.stringify(data, null, 2));
 }
 
