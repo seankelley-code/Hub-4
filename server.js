@@ -748,12 +748,10 @@ IMPORTANT: For Walkthrough Log rows use fill_walkthroughs. For Risk Register row
   },
   {
     name: 'fill_data_validation',
-    description: `Populate the Data Validation (C&A) table in the Planning phase. Call this when the user asks to generate, suggest, or populate data validation records. Each row validates one data extract or report used as a population or sample source.
+    description: `Populate the Data Validation (C&A) table. Each row validates one data extract or report.
 
 APPROACH valid values: Profiling Data | Front End Confirmation | Reconciliations | Reasonableness Check | Data Owner Backend Walkthrough | Independent Generation | Control Totals | IPE Procedures
-COUNTS MATCH valid values: Yes | No
 CONCLUSION valid values: Complete & Accurate | Issues Noted | Pending
-DATA PULLED BY valid values: FAAST | Audit Team | Business
 MODE: "replace" = clear existing rows first; "append" = add to existing`,
     input_schema: {
       type: 'object',
@@ -763,14 +761,13 @@ MODE: "replace" = clear existing rows first; "append" = add to existing`,
           items: {
             type: 'object',
             properties: {
-              dataDesc:     { type: 'string', description: 'Specific name of the data extract or report (e.g. "vRepair ticket extract — all tickets closed Q1 2026")' },
-              sourceSystem: { type: 'string', description: 'System the data comes from (e.g. "vRepair", "SAP", "SharePoint")' },
-              dataPuller:   { type: 'string', description: 'Who pulls the data: FAAST | Audit Team | Business' },
-              extractLogic: { type: 'string', description: 'Filter criteria, date range, and parameters used for the extract' },
-              approach:     { type: 'string', description: 'Validation approach: Profiling Data | Front End Confirmation | Reconciliations | Reasonableness Check | Data Owner Backend Walkthrough | Independent Generation | Control Totals | IPE Procedures' },
-              notes:        { type: 'string', description: 'What specifically to validate and any expected issues' },
+              dataDesc:     { type: 'string', description: 'Specific name of the data extract or report' },
+              sourceSystem: { type: 'string', description: 'System the data comes from (e.g. "vRepair", "SAP")' },
+              approach:     { type: 'string', description: 'Validation approach' },
+              conclusion:   { type: 'string', enum: ['Complete & Accurate', 'Issues Noted', 'Pending'] },
+              notes:        { type: 'string', description: 'Notes on what to validate or any exceptions' },
             },
-            required: ['dataDesc', 'sourceSystem'],
+            required: ['dataDesc', 'sourceSystem', 'approach'],
           },
         },
         mode: { type: 'string', enum: ['replace', 'append'] },
@@ -818,27 +815,21 @@ MODE: "replace" = clear existing rows first; "append" = add to existing (default
   },
   {
     name: 'fill_sampling_card',
-    description: `Fill the fields of an existing open Sampling Plan card in-place. Use this when the user has a card already open and wants it populated — do NOT create a new card. If no card exists yet, one will be created.
+    description: `Fill the fields of an existing open Sampling Plan card in-place. Use when the user wants the current card populated. If no card exists yet, one will be created.
 
-This fills ONE card: name, risk, control, freq, period, objective, auditProcedure (array of up to 5 steps), workPerformed (array of up to 5 templates), testingAttributes (array of up to 5 checkpoints).
-
-Step 1 of auditProcedure should always be: pull the complete population listing.
-Apply VIA sampling table for sample size: 1–249 pop → 25; 250–999 → 40; 1,000+ → 60.
-FREQ valid values: Daily | Weekly | Monthly | Quarterly | Annual | Ad-hoc`,
+FREQ valid values: Daily | Weekly | Monthly | Quarterly | Annual | Ad-hoc
+auditProcedure: array of up to 3 steps. Step 1 = pull complete population listing.`,
     input_schema: {
       type: 'object',
       properties: {
-        name:              { type: 'string', description: 'Procedure name in A.R1.C1 — Title format' },
-        risk:              { type: 'string', description: 'Associated risk statement' },
-        control:           { type: 'string', description: 'Control description' },
-        freq:              { type: 'string', enum: ['Daily','Weekly','Monthly','Quarterly','Annual','Ad-hoc'] },
-        period:            { type: 'string', description: 'Time period, e.g. Jan 1 – Dec 31, 2025' },
-        objective:         { type: 'string', description: 'Test objective' },
-        auditProcedure:    { type: 'array', items: { type: 'string' }, description: '3–5 audit procedure steps' },
-        workPerformed:     { type: 'array', items: { type: 'string' }, description: '3–5 work performed templates (past tense)' },
-        testingAttributes: { type: 'array', items: { type: 'string' }, description: '3–5 binary testing checkpoints per sample' },
+        name:           { type: 'string', description: 'Procedure name' },
+        risk:           { type: 'string', description: 'Associated risk statement' },
+        control:        { type: 'string', description: 'Control description' },
+        freq:           { type: 'string', enum: ['Daily','Weekly','Monthly','Quarterly','Annual','Ad-hoc'] },
+        objective:      { type: 'string', description: 'Test objective' },
+        auditProcedure: { type: 'array', items: { type: 'string' }, description: 'Up to 3 audit procedure steps' },
       },
-      required: ['name', 'risk', 'control', 'objective', 'auditProcedure', 'testingAttributes'],
+      required: ['name', 'risk', 'control', 'objective', 'auditProcedure'],
     },
   },
   {
@@ -875,27 +866,18 @@ If design is "Partial Gap" or "Gap", set gap to "Yes" and note the gap in the no
   },
   {
     name: 'fill_risk_register',
-    description: `Add rows to the Risk Register table. Call this when the user asks to build, populate, generate, or add to the risk register. Always include explanatory text alongside every tool call.
+    description: `Add rows to the Risk Register table. Call this when the user asks to build, populate, or generate the risk register.
 
-RISK DESC FORMAT (desc field — 2 lines):
+RISK DESC FORMAT (desc field):
   Line 1: "A.R1 - [Short Risk Title]"
   Line 2: "(DESCRIPTION) [what can fail], (ROOT CAUSE) due to [control gap], (IMPACT) resulting in [consequence]."
 
-CONTROLS FORMAT (controls field — all controls for this risk in one text block, blank line between entries):
-  "A.R1.C1 —
-  (WHO) [who performs]
-  (WHAT) [action taken]
-  (WHEN) [frequency]
-  (WHERE) [system or location]
-  (WHY) to ensure [control objective]"
+CONTROLS FORMAT:
+  "(WHO) [who performs] (WHAT) [action] (WHEN) [frequency] (WHERE) [system/location] (WHY) to ensure [objective]"
 
-PROCEDURE FORMAT (procedure field — 4-step test procedure; always populate for in-scope risks):
-  "Step 1 — Walkthrough: Conduct a walkthrough with [control owner/role] to understand the process end-to-end and confirm control design. Perform a test of one.
-  Step 2 — Occurrence: Obtain [specific evidence — meeting logs, training records, system reports, approval emails] to confirm the control executed during the audit period. Sample per VIA sampling table.
-  Step 3 — Content Review: Review [specific documents — policy, training deck, checklist, procedure guide] to confirm content is adequate, current, and addresses the identified risk.
-  Step 4 — Recalibration: Review the process used to update/recalibrate [materials/controls] to ensure it reflects current risk conditions and any prior audit findings or regulatory changes."
+TEST PROCEDURE: 4 steps — Walkthrough, Occurrence, Content Review, Recalibration.
 
-CTYPE valid values: Preventative/Manual | Preventative/Automated | Preventative/Hybrid | Detective/Manual | Detective/Automated | Detective/Hybrid | Corrective/Manual | Corrective/Automated | Corrective/Hybrid | Missing Control - Control Gap
+CTYPE valid values: Preventative/Manual | Preventative/Automated | Preventative/Hybrid | Detective/Manual | Detective/Automated | Detective/Hybrid | Corrective/Manual | Corrective/Automated | Missing Control - Control Gap
 FREQ valid values: Daily | Weekly | Monthly | Quarterly | Annual | Ad-hoc
 INSCOPE valid values: Yes | No
 MODE: "replace" = clear existing rows first; "append" = add to existing (default)`,
@@ -904,33 +886,24 @@ MODE: "replace" = clear existing rows first; "append" = add to existing (default
       properties: {
         rows: {
           type: 'array',
-          description: 'Array of risk register rows. Each row maps to one risk entry.',
           items: {
             type: 'object',
             properties: {
               riskId:        { type: 'string', description: 'e.g. A.R1' },
-              scopeArea:     { type: 'string', description: 'Process/area label, e.g. "A. Access Management"' },
               desc:          { type: 'string', description: '2-line risk description in VIA format' },
-              frostType:     { type: 'string', enum: ['Technology & Information Security', 'Operational', 'Financial', 'Regulatory/Compliance', 'Strategic'], description: 'Primary FROST category' },
-              frost:         { type: 'string', description: 'Exact FROST sub-category from the VIA list' },
+              frostType:     { type: 'string', enum: ['Technology & Information Security', 'Operational', 'Financial', 'Regulatory/Compliance', 'Strategic'] },
               likelihood:    { type: 'string', enum: ['Likely', 'Possible', 'Unlikely'] },
               impact:        { type: 'string', enum: ['High', 'Medium', 'Low'] },
-              ctrlId:        { type: 'string', description: 'Control ID, e.g. A.R1.C1' },
-              controls:      { type: 'string', description: 'Full controls text for this risk (WHO/WHAT/WHEN/WHERE/WHY format)' },
-              ctype:         { type: 'string', description: 'Primary control type' },
+              controls:      { type: 'string', description: 'Control description in WHO/WHAT/WHEN/WHERE/WHY format' },
+              testProcedure: { type: 'string', description: '4-step test procedure' },
+              ctype:         { type: 'string', description: 'Control type' },
               freq:          { type: 'string', description: 'Control frequency' },
               inscope:       { type: 'string', enum: ['Yes', 'No'] },
-              topical:       { type: 'string', description: 'IIA Topical Requirement code or Not Applicable' },
-              testProcedure: { type: 'string', description: '4-step test procedure: Step 1 Walkthrough, Step 2 Occurrence, Step 3 Content Review, Step 4 Recalibration' },
             },
-            required: ['riskId', 'desc', 'frost', 'likelihood', 'impact'],
+            required: ['riskId', 'desc', 'likelihood', 'impact'],
           },
         },
-        mode: {
-          type: 'string',
-          enum: ['replace', 'append'],
-          description: 'replace: clear existing rows first. append: add to existing. Default: append',
-        },
+        mode: { type: 'string', enum: ['replace', 'append'] },
       },
       required: ['rows'],
     },
@@ -986,68 +959,34 @@ TESTING ATTRIBUTES FORMAT: specific binary checkpoints per sample (e.g. "Access 
   },
   {
     name: 'fill_data_sampling',
-    description: `Populate the Data Sampling tab — Section 01 (procedure cards) and Section 02 (sampling documentation cards) — in one call. Use when the user asks to generate, fill, or draft the data sampling plan.
+    description: `Populate the Data Sampling tab with procedure cards. One card per in-scope control.
 
-PROCEDURES (Section 01): one card per in-scope control. Apply VIA sampling table (1–249 pop → 25; 250–999 → 40; 1,000+ → 60).
-  - name: "A.R1.C1 — Short Title" format
-  - auditProcedure: 3–5 steps. Step 1 = pull complete population listing. Step 2 = apply VIA table / select sample.
-  - workPerformed: brief templates in past tense ("Obtained [X] from [system]…")
-  - testingAttributes: specific binary checkpoints per sample item
-
-DOCS (Section 02): one documentation card per test procedure.
-  - dataSource: how the population data was obtained (system name, report name, requester)
-  - completeness: how data completeness and accuracy was verified
-  - population: size + description of what's being tested + any filters/stratification
-  - totalPop: "No — [N] items selected per VIA table" or "Yes — full population tested"
-  - methodology: Attribute Sampling / Haphazard / Full Population + brief rationale
-  - parameters: sample size number + VIA table basis + selection method
-  - unit: one item type (e.g. "one access provisioning request", "one invoice line item")
-  - sampleSize: numeric value from VIA table
-  - expansion: "N/A for initial sample" unless expansion is required`,
+Apply VIA sampling table: 1–249 pop → 25; 250–999 → 40; 1,000+ → 60.
+FREQ valid values: Daily | Weekly | Monthly | Quarterly | Annual | Ad-hoc
+auditProcedure: up to 3 steps. Step 1 = pull complete population listing.
+MODE: "replace" = clear existing; "append" = add to existing`,
     input_schema: {
       type: 'object',
       properties: {
         procedures: {
           type: 'array',
-          description: 'Section 01 procedure cards — one per in-scope control',
+          description: 'Procedure cards — one per in-scope control',
           items: {
             type: 'object',
             properties: {
-              name:              { type: 'string' },
-              risk:              { type: 'string' },
-              control:           { type: 'string' },
-              freq:              { type: 'string', enum: ['Daily','Weekly','Monthly','Quarterly','Annual','Ad-hoc'] },
-              period:            { type: 'string' },
-              objective:         { type: 'string' },
-              auditProcedure:    { type: 'array', items: { type: 'string' } },
-              workPerformed:     { type: 'array', items: { type: 'string' } },
-              testingAttributes: { type: 'array', items: { type: 'string' } },
+              name:           { type: 'string', description: 'Procedure name' },
+              risk:           { type: 'string', description: 'Associated risk' },
+              control:        { type: 'string', description: 'Control description' },
+              freq:           { type: 'string', enum: ['Daily','Weekly','Monthly','Quarterly','Annual','Ad-hoc'] },
+              objective:      { type: 'string', description: 'Test objective' },
+              auditProcedure: { type: 'array', items: { type: 'string' }, description: 'Up to 3 procedure steps' },
             },
-            required: ['name', 'risk', 'control', 'objective', 'auditProcedure', 'testingAttributes'],
-          },
-        },
-        docs: {
-          type: 'array',
-          description: 'Section 02 sampling documentation cards — one per procedure',
-          items: {
-            type: 'object',
-            properties: {
-              dataSource:   { type: 'string' },
-              completeness: { type: 'string' },
-              population:   { type: 'string' },
-              totalPop:     { type: 'string' },
-              methodology:  { type: 'string' },
-              parameters:   { type: 'string' },
-              unit:         { type: 'string' },
-              sampleSize:   { type: 'string' },
-              expansion:    { type: 'string' },
-            },
-            required: ['dataSource', 'population', 'methodology', 'sampleSize'],
+            required: ['name', 'risk', 'control', 'objective', 'auditProcedure'],
           },
         },
         mode: { type: 'string', enum: ['replace', 'append'] },
       },
-      required: ['procedures', 'docs'],
+      required: ['procedures'],
     },
   },
   {

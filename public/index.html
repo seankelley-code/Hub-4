@@ -1843,32 +1843,20 @@
 
             <!-- RISK REGISTER TABLE -->
             <div class="table-scroll">
-              <table class="dyn-table" style="min-width:3590px">
+              <table class="dyn-table" style="min-width:1500px">
                 <thead>
                   <tr>
-                    <th style="width:65px">Risk ID</th>
-                    <th style="width:110px">Scope Area</th>
-                    <th style="width:190px">Risk Description</th>
-                    <th style="width:130px">FROST Risk Type</th>
-                    <th style="width:150px">FROST Sub-Category</th>
+                    <th style="width:70px">Risk ID</th>
+                    <th style="width:280px">Risk Description</th>
+                    <th style="width:130px">FROST Type</th>
                     <th style="width:80px">Likelihood</th>
                     <th style="width:70px">Impact</th>
-                    <th style="width:70px">Risk Level</th>
-                    <th style="width:90px">Control ID</th>
-                    <th style="width:170px">Controls Tested</th>
-                    <th style="width:190px">Test Procedure</th>
-                    <th style="width:130px">Control Type</th>
+                    <th style="width:75px">Risk Level</th>
+                    <th style="width:220px">Controls Tested</th>
+                    <th style="width:220px">Test Procedure</th>
+                    <th style="width:140px">Control Type</th>
                     <th style="width:80px">Frequency</th>
                     <th style="width:60px">In Scope?</th>
-                    <th style="width:90px">Topical Req</th>
-                    <th style="width:130px">Tech App Testing Area</th>
-                    <th style="width:120px">Vendor(s) Impacted</th>
-                    <th style="width:120px">System(s) Impacted</th>
-                    <th style="width:130px">Systems from Pop/Sample</th>
-                    <th style="width:120px">Assigned Auditor(s)</th>
-                    <th style="width:110px">IA Support Preparer</th>
-                    <th style="width:110px">IA Support Reviewer</th>
-                    <th style="width:50px">Proc</th>
                     <th style="width:28px"></th>
                   </tr>
                 </thead>
@@ -2012,16 +2000,11 @@
             <table class="dyn-table">
               <thead>
                 <tr>
-                  <th style="width:18%">Data / Report Description</th>
-                  <th style="width:14%">Source System</th>
-                  <th style="width:10%">Data Pulled By</th>
-                  <th style="width:18%">Extract Logic / Parameters</th>
-                  <th style="width:12%">Validation Approach</th>
-                  <th style="width:7%">Source Count</th>
-                  <th style="width:7%">Pop. Count</th>
-                  <th style="width:8%">Counts Match?</th>
-                  <th style="width:10%">Conclusion</th>
-                  <th style="width:16%">Notes</th>
+                  <th style="width:30%">Data / Report Description</th>
+                  <th style="width:20%">Source System</th>
+                  <th style="width:18%">Validation Approach</th>
+                  <th style="width:12%">Conclusion</th>
+                  <th style="width:20%">Notes</th>
                   <th style="width:28px"></th>
                 </tr>
               </thead>
@@ -3588,7 +3571,6 @@
         setVal('.ds-risk', r.risk);
         setVal('.ds-control', r.control);
         setVal('.ds-freq', r.freq);
-        setVal('.ds-period', r.period);
         setVal('.ds-objective', r.objective);
         if (r.name) { const t = card.querySelector('.ap2-card-title'); if (t) t.textContent = r.name; }
         const fillArr = (cls, vals) => {
@@ -3598,8 +3580,6 @@
           });
         };
         fillArr('.ds-proc-item', r.auditProcedure);
-        fillArr('.ds-work-item', r.workPerformed);
-        fillArr('.ds-attr-item', r.testingAttributes);
       }
       schedSave();
       return `Sampling card filled`;
@@ -3667,17 +3647,11 @@
       return rows.length > 0 ? `${rows.length} follow-up row${rows.length !== 1 ? 's' : ''} added` : null;
     } else if (toolCall.name === 'fill_data_sampling') {
       const procs = toolCall.input.procedures || [];
-      const docs  = toolCall.input.docs || [];
       const mode  = toolCall.input.mode || 'replace';
-      if (mode === 'replace') {
-        el$('plan-ds-body').innerHTML = '';
-        el$('plan-ds-doc-body').innerHTML = '';
-      }
+      if (mode === 'replace') el$('plan-ds-body').innerHTML = '';
       procs.forEach(r => addPlanDSRowData(r));
-      docs.forEach(r => addSamplingDocCard(r));
-      if (procs.length || docs.length) schedSave();
-      const total = procs.length + docs.length;
-      return total > 0 ? `${procs.length} procedure card${procs.length !== 1 ? 's' : ''} and ${docs.length} documentation card${docs.length !== 1 ? 's' : ''} generated` : null;
+      if (procs.length) schedSave();
+      return procs.length > 0 ? `${procs.length} sampling card${procs.length !== 1 ? 's' : ''} generated` : null;
     }
     return null;
   }
@@ -3702,19 +3676,15 @@
     (rows || []).forEach(row => {
       addRRRowData({
         riskId:        row.riskId        || '',
-        scopeArea:     row.scopeArea     || '',
         desc:          row.desc          || '',
         frostType:     row.frostType     || '',
-        frost:         row.frost         || '',
         likelihood:    row.likelihood    || '',
         impact:        row.impact        || '',
-        ctrlId:        row.ctrlId        || '',
         controls:      row.controls      || '',
         testProcedure: row.testProcedure || row.procedure || '',
         ctype:         row.ctype         || '',
         freq:          row.freq          || '',
-        inscope:       row.inscope       || '',
-        topical:       row.topical       || 'Not Applicable',
+        inscope:       row.inscope       || 'Yes',
       });
     });
     if ((rows || []).length > 0) schedSave();
@@ -4013,14 +3983,11 @@
   }
 
   function addRRRowData(r) {
-    const frostOpts   = FROST_SUBCATS.map(s => `<option value="${s}" ${r.frost===s?'selected':''}>${s}</option>`).join('');
-    const topicalOpts = TOPICAL_REQS.map(s  => `<option value="${s}" ${r.topical===s?'selected':''}>${s}</option>`).join('');
     const level = calcRiskLevel(r.likelihood, r.impact);
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><input class="rr-id" type="text" value="${x(r.riskId||'')}" placeholder="A.R1" style="font-family:monospace;font-size:12px" oninput="const tag=this.closest('tr').querySelector('.rr-testproc-id');if(tag)tag.textContent=this.value||'—';"></td>
-      <td><input class="rr-scope-area" type="text" value="${x(r.scopeArea||'')}" placeholder="A. Process Name"></td>
-      <td><textarea class="rr-ta-desc" placeholder="A.R1 - Short Name&#10;(DESCRIPTION) [what is failing or not occurring],&#10;(ROOT CAUSE) due to [specific control gap or process failure],&#10;(IMPACT) resulting in [financial/regulatory/operational consequence].">${x(r.desc||'')}</textarea></td>
+      <td><input class="rr-id" type="text" value="${x(r.riskId||'')}" placeholder="A.R1" style="font-family:monospace;font-size:12px"></td>
+      <td><textarea class="rr-ta-desc" placeholder="A.R1 - Short Name&#10;(DESCRIPTION) what is failing,&#10;(ROOT CAUSE) due to [gap],&#10;(IMPACT) resulting in [consequence].">${x(r.desc||'')}</textarea></td>
       <td><select class="rr-frost-type">
         <option value="">Type…</option>
         <option ${r.frostType==='Technology & Information Security'?'selected':''}>Technology &amp; Information Security</option>
@@ -4029,7 +3996,6 @@
         <option ${r.frostType==='Regulatory/Compliance'?'selected':''}>Regulatory/Compliance</option>
         <option ${r.frostType==='Strategic'?'selected':''}>Strategic</option>
       </select></td>
-      <td><select class="rr-frost"><option value="">Sub-category…</option>${frostOpts}</select></td>
       <td><select class="rr-likelihood" onchange="updateRiskLevel(this)">
         <option value="">–</option>
         <option ${r.likelihood==='Likely'?'selected':''}>Likely</option>
@@ -4045,12 +4011,8 @@
       <td class="rr-level-cell">${level
         ? `<span class="risk-badge ${level.toLowerCase()}">${level}</span>`
         : '<span style="color:var(--text-dim)">–</span>'}</td>
-      <td><input class="rr-ctrl-id" type="text" value="${x(r.ctrlId||'')}" placeholder="A.R1.C1" style="font-family:monospace;font-size:12px"></td>
-      <td><textarea class="rr-ta-ctrl" placeholder="A.R1.C1 —&#10;(WHO) [who performs]&#10;(WHAT) [action taken]&#10;(WHEN) [frequency]&#10;(WHERE) [location/system]&#10;(WHY) to ensure [control objective]&#10;&#10;Design gap? Enter: Missing Control - Control Gap">${x(r.controls||'')}</textarea></td>
-      <td class="rr-testproc-cell">
-        <div class="rr-testproc-tag" id="">→ <span class="rr-testproc-id">${x(r.riskId||'—')}</span></div>
-        <textarea class="rr-ta-testproc" placeholder="Primary test procedure for this risk item...">${x(r.testProcedure||'')}</textarea>
-      </td>
+      <td><textarea class="rr-ta-ctrl" placeholder="(WHO) who performs&#10;(WHAT) action taken&#10;(WHEN) frequency&#10;(WHERE) system/location&#10;(WHY) to ensure [objective]">${x(r.controls||'')}</textarea></td>
+      <td><textarea class="rr-ta-testproc" placeholder="Test procedure for this risk…">${x(r.testProcedure||r.procedure||'')}</textarea></td>
       <td><select class="rr-ctype">
         <option value="">Type…</option>
         <option ${r.ctype==='Preventative/Manual'?'selected':''}>Preventative/Manual</option>
@@ -4061,7 +4023,6 @@
         <option ${r.ctype==='Detective/Hybrid'?'selected':''}>Detective/Hybrid</option>
         <option ${r.ctype==='Corrective/Manual'?'selected':''}>Corrective/Manual</option>
         <option ${r.ctype==='Corrective/Automated'?'selected':''}>Corrective/Automated</option>
-        <option ${r.ctype==='Corrective/Hybrid'?'selected':''}>Corrective/Hybrid</option>
         <option ${r.ctype==='Missing Control - Control Gap'?'selected':''}>Missing Control - Control Gap</option>
       </select></td>
       <td><select class="rr-freq">
@@ -4078,106 +4039,32 @@
         <option ${r.inscope==='Yes'?'selected':''}>Yes</option>
         <option ${r.inscope==='No'?'selected':''}>No</option>
       </select></td>
-      <td><select class="rr-topical"><option value="">–</option>${topicalOpts}</select></td>
-      <td><input class="rr-tech-area" type="text" value="${x(r.techArea||'')}" placeholder="App name / N/A"></td>
-      <td><input class="rr-vendors" type="text" value="${x(r.vendors||'')}" placeholder="Vendor name(s)"></td>
-      <td><input class="rr-systems" type="text" value="${x(r.systems||'')}" placeholder="System name(s)"></td>
-      <td><input class="rr-systems-pop" type="text" value="${x(r.systemsPop||'')}" placeholder="System(s) for pop/sample"></td>
-      <td><textarea class="rr-auditors" placeholder="FinOps Auditor:&#10;Technology Auditor:&#10;FAAST Auditor:">${x(r.auditors||'')}</textarea></td>
-      <td><input class="rr-ia-preparer" type="text" value="${x(r.iaPreparer||'')}" placeholder="Preparer name"></td>
-      <td><input class="rr-ia-reviewer" type="text" value="${x(r.iaReviewer||'')}" placeholder="Reviewer name"></td>
-      <td><button class="btn-proc-toggle${(r.procedure||r.techProcedure||r.faastProcedure)?' has-proc':''}" onclick="toggleProcRow(this)" title="View / edit test procedures">📋</button></td>
       <td><button class="btn-del-row" onclick="delRRRow(this)">✕</button></td>`;
     tr.className = 'rr-main-row';
     el$('rr-body').appendChild(tr);
-
-    // Hidden test-procedure sub-row
-    const procTr = document.createElement('tr');
-    procTr.className = 'rr-proc-row';
-    procTr.style.display = (r.procedure || r.techProcedure || r.faastProcedure || r.frostConsid || r.changedProc || r.changeRationale || r.comments) ? '' : 'none';
-    procTr.innerHTML = `<td colspan="24" class="rr-proc-cell">
-      <div class="rr-proc-header">
-        <span class="rr-proc-label">📋 Test Procedures</span>
-        <button class="btn-gen-proc" onclick="genTestProcedure(this)" title="AI-generate FinOps test procedure for this risk">⚡ AI Generate (FinOps)</button>
-      </div>
-      <div class="rr-proc-grid">
-        <div class="rr-proc-section">
-          <label>FinOps Audit Procedures</label>
-          <textarea class="rr-proc-ta" placeholder="Step 1 — Walkthrough: Conduct a walkthrough with [control owner/role] to understand the process end-to-end and confirm control design. Perform a test of one.&#10;Step 2 — Occurrence: Obtain [specific evidence] to confirm the control executed during the audit period.&#10;Step 3 — Content Review: Review [specific documents] to confirm content is adequate and current.&#10;Step 4 — Recalibration: Review the process used to update/recalibrate [materials] to ensure it reflects current risk conditions.">${x(r.procedure||'')}</textarea>
-        </div>
-        <div class="rr-proc-section">
-          <label>Technology Audit Procedures</label>
-          <textarea class="rr-proc-ta rr-tech-proc" placeholder="Technology-specific testing steps...">${x(r.techProcedure||'')}</textarea>
-        </div>
-        <div class="rr-proc-section">
-          <label>FAAST Audit Procedures</label>
-          <textarea class="rr-proc-ta rr-faast-proc" placeholder="FAAST data extraction and validation steps...">${x(r.faastProcedure||'')}</textarea>
-        </div>
-      </div>
-      <div class="rr-proc-grid-wide" style="margin-top:8px">
-        <div class="rr-proc-section">
-          <label>FROST / Topical Considerations <span style="font-weight:400;color:var(--text-dim)">(reference only)</span></label>
-          <textarea class="rr-proc-ta short rr-frost-consid" placeholder="Reference notes on FROST/topical mapping...">${x(r.frostConsid||'')}</textarea>
-        </div>
-        <div class="rr-proc-section">
-          <label>Changed Audit Procedures</label>
-          <textarea class="rr-proc-ta short rr-changed-proc" placeholder="Document any changed procedures (if applicable)...">${x(r.changedProc||'')}</textarea>
-        </div>
-        <div class="rr-proc-section">
-          <label>Change Rationale</label>
-          <textarea class="rr-proc-ta short rr-change-rationale" placeholder="Rationale for procedure changes (required if procedures changed)...">${x(r.changeRationale||'')}</textarea>
-        </div>
-      </div>
-      <div class="rr-proc-section" style="margin-top:8px">
-        <label>Comments</label>
-        <textarea class="rr-proc-ta short rr-comments" placeholder="General comments...">${x(r.comments||'')}</textarea>
-      </div>
-    </td>`;
-    el$('rr-body').appendChild(procTr);
   }
 
   function collectRR() {
-    return [...document.querySelectorAll('#rr-body tr.rr-main-row')].map(tr => {
-      const procTr = tr.nextElementSibling;
-      return {
-        riskId:          tr.querySelector('.rr-id')?.value,
-        scopeArea:       tr.querySelector('.rr-scope-area')?.value,
-        desc:            tr.querySelector('.rr-ta-desc')?.value,
-        frostType:       tr.querySelector('.rr-frost-type')?.value,
-        frost:           tr.querySelector('.rr-frost')?.value,
-        likelihood:      tr.querySelector('.rr-likelihood')?.value,
-        impact:          tr.querySelector('.rr-impact')?.value,
-        ctrlId:          tr.querySelector('.rr-ctrl-id')?.value,
-        controls:        tr.querySelector('.rr-ta-ctrl')?.value,
-        testProcedure:   tr.querySelector('.rr-ta-testproc')?.value || '',
-        ctype:           tr.querySelector('.rr-ctype')?.value,
-        freq:            tr.querySelector('.rr-freq')?.value,
-        inscope:         tr.querySelector('.rr-inscope')?.value,
-        topical:         tr.querySelector('.rr-topical')?.value,
-        techArea:        tr.querySelector('.rr-tech-area')?.value,
-        vendors:         tr.querySelector('.rr-vendors')?.value,
-        systems:         tr.querySelector('.rr-systems')?.value,
-        systemsPop:      tr.querySelector('.rr-systems-pop')?.value,
-        auditors:        tr.querySelector('.rr-auditors')?.value,
-        iaPreparer:      tr.querySelector('.rr-ia-preparer')?.value,
-        iaReviewer:      tr.querySelector('.rr-ia-reviewer')?.value,
-        procedure:       procTr?.querySelector('.rr-proc-ta')?.value || '',
-        techProcedure:   procTr?.querySelector('.rr-tech-proc')?.value || '',
-        faastProcedure:  procTr?.querySelector('.rr-faast-proc')?.value || '',
-        frostConsid:     procTr?.querySelector('.rr-frost-consid')?.value || '',
-        changedProc:     procTr?.querySelector('.rr-changed-proc')?.value || '',
-        changeRationale: procTr?.querySelector('.rr-change-rationale')?.value || '',
-        comments:        procTr?.querySelector('.rr-comments')?.value || '',
-      };
-    });
+    return [...document.querySelectorAll('#rr-body tr.rr-main-row')].map(tr => ({
+      riskId:        tr.querySelector('.rr-id')?.value,
+      desc:          tr.querySelector('.rr-ta-desc')?.value,
+      frostType:     tr.querySelector('.rr-frost-type')?.value,
+      likelihood:    tr.querySelector('.rr-likelihood')?.value,
+      impact:        tr.querySelector('.rr-impact')?.value,
+      controls:      tr.querySelector('.rr-ta-ctrl')?.value,
+      testProcedure: tr.querySelector('.rr-ta-testproc')?.value || '',
+      ctype:         tr.querySelector('.rr-ctype')?.value,
+      freq:          tr.querySelector('.rr-freq')?.value,
+      inscope:       tr.querySelector('.rr-inscope')?.value,
+    }));
   }
 
   // ── RISK REGISTER EXPORT ─────────────────────────────────────
-  const RR_HEADERS = ['Risk ID','Scope Area','Risk Description','FROST Risk Type','FROST Sub-Category','Likelihood','Impact','Risk Level','Control ID','Controls Tested','Test Procedure','Control Type','Frequency','In Scope','Topical Req','Tech App Testing Area','Vendor(s) Impacted','System(s) Impacted','Systems from Pop/Sample','Assigned Auditor(s)','IA Support Preparer','IA Support Reviewer','FinOps Procedures','Technology Procedures','FAAST Procedures','FROST Considerations','Changed Procedures','Change Rationale','Comments'];
+  const RR_HEADERS = ['Risk ID','Risk Description','FROST Type','Likelihood','Impact','Risk Level','Controls Tested','Test Procedure','Control Type','Frequency','In Scope'];
 
   function rrRowToArray(r) {
     const level = r.likelihood && r.impact ? (calcRiskLevel(r.likelihood, r.impact) || '') : '';
-    return [r.riskId, r.scopeArea, r.desc, r.frostType, r.frost, r.likelihood, r.impact, level, r.ctrlId, r.controls, r.testProcedure, r.ctype, r.freq, r.inscope, r.topical, r.techArea, r.vendors, r.systems, r.systemsPop, r.auditors, r.iaPreparer, r.iaReviewer, r.procedure, r.techProcedure, r.faastProcedure, r.frostConsid, r.changedProc, r.changeRationale, r.comments];
+    return [r.riskId, r.desc, r.frostType, r.likelihood, r.impact, level, r.controls, r.testProcedure, r.ctype, r.freq, r.inscope];
   }
 
   function exportRRcsv() {
@@ -4628,16 +4515,9 @@ ${manager ? manager + '\n' : ''}Verizon Internal Audit
   function addPlanDVRowData(r) {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><input type="text" value="${x(r.dataDesc||'')}" placeholder="Data / report description"></td>
-      <td><input type="text" value="${x(r.sourceSystem||'')}" placeholder="SAP, SharePoint, vRepair…"></td>
-      <td><select>
-        <option value="">–</option>
-        <option ${r.dataPuller==='FAAST'?'selected':''}>FAAST</option>
-        <option ${r.dataPuller==='Audit Team'?'selected':''}>Audit Team</option>
-        <option ${r.dataPuller==='Business'?'selected':''}>Business</option>
-      </select></td>
-      <td><textarea placeholder="Filter criteria, date range, parameters…">${x(r.extractLogic||'')}</textarea></td>
-      <td><select>
+      <td><input class="dv-data-desc" type="text" value="${x(r.dataDesc||'')}" placeholder="Data / report description"></td>
+      <td><input class="dv-source-system" type="text" value="${x(r.sourceSystem||'')}" placeholder="SAP, SharePoint, vRepair…"></td>
+      <td><select class="dv-approach">
         <option value="">–</option>
         <option ${r.approach==='Profiling Data'?'selected':''}>Profiling Data</option>
         <option ${r.approach==='Front End Confirmation'?'selected':''}>Front End Confirmation</option>
@@ -4648,29 +4528,25 @@ ${manager ? manager + '\n' : ''}Verizon Internal Audit
         <option ${r.approach==='Control Totals'?'selected':''}>Control Totals</option>
         <option ${r.approach==='IPE Procedures'?'selected':''}>IPE Procedures</option>
       </select></td>
-      <td><input type="number" value="${x(r.sourceCount||'')}" placeholder="–" min="0"></td>
-      <td><input type="number" value="${x(r.popCount||'')}" placeholder="–" min="0"></td>
-      <td><select>
-        <option value="">–</option>
-        <option ${r.countsMatch==='Yes'?'selected':''}>Yes</option>
-        <option ${r.countsMatch==='No'?'selected':''}>No</option>
-      </select></td>
-      <td><select>
+      <td><select class="dv-conclusion">
         <option value="">–</option>
         <option ${r.conclusion==='Complete & Accurate'?'selected':''}>Complete &amp; Accurate</option>
         <option ${r.conclusion==='Issues Noted'?'selected':''}>Issues Noted</option>
         <option ${r.conclusion==='Pending'?'selected':''}>Pending</option>
       </select></td>
-      <td><textarea placeholder="Notes / exceptions…">${x(r.notes||'')}</textarea></td>
+      <td><textarea class="dv-notes" placeholder="Notes / exceptions…">${x(r.notes||'')}</textarea></td>
       <td><button class="btn-del-row" onclick="delRow(this)">✕</button></td>`;
     el$('plan-dv-body').appendChild(tr);
   }
 
   function collectDataVal() {
-    return [...document.querySelectorAll('#plan-dv-body tr')].map(tr => {
-      const f = tr.querySelectorAll('input,textarea,select');
-      return { dataDesc:f[0]?.value, sourceSystem:f[1]?.value, dataPuller:f[2]?.value, extractLogic:f[3]?.value, approach:f[4]?.value, sourceCount:f[5]?.value, popCount:f[6]?.value, countsMatch:f[7]?.value, conclusion:f[8]?.value, notes:f[9]?.value };
-    });
+    return [...document.querySelectorAll('#plan-dv-body tr')].map(tr => ({
+      dataDesc:     tr.querySelector('.dv-data-desc')?.value,
+      sourceSystem: tr.querySelector('.dv-source-system')?.value,
+      approach:     tr.querySelector('.dv-approach')?.value,
+      conclusion:   tr.querySelector('.dv-conclusion')?.value,
+      notes:        tr.querySelector('.dv-notes')?.value,
+    }));
   }
 
   async function genDataValidation() {
@@ -4708,7 +4584,7 @@ ${manager ? manager + '\n' : ''}Verizon Internal Audit
   function addPlanDSRowData(r) {
     r = r || {};
     const freqs = ['Daily','Weekly','Monthly','Quarterly','Annual','Ad-hoc'];
-    const numRows = (vals, cls, ph) => Array.from({length:5},(_,i)=>`
+    const numRows = (vals, cls, ph, count) => Array.from({length:count||3},(_,i)=>`
       <div class="ap2-num-row"><span class="ap2-num">${i+1}.</span>
         <textarea class="${cls}" placeholder="${ph}">${x((vals&&vals[i])||'')}</textarea></div>`).join('');
     const card = document.createElement('div');
@@ -4722,7 +4598,7 @@ ${manager ? manager + '\n' : ''}Verizon Internal Audit
         <table class="ap2-tbl">
           <tbody>
             <tr>
-              <td class="ap2-name-label">AuditBoard Program Procedure Name</td>
+              <td class="ap2-name-label">Procedure Name</td>
               <td><input class="ds-name" value="${x(r.name||'')}" placeholder="Procedure name…"
                 oninput="this.closest('.ap2-card').querySelector('.ap2-card-title').textContent=this.value||'New Sampling Record';schedSave()"></td>
             </tr>
@@ -4742,24 +4618,12 @@ ${manager ? manager + '\n' : ''}Verizon Internal Audit
               </select></td>
             </tr>
             <tr>
-              <td class="ap2-field-label">Time Period Covered by Test</td>
-              <td><input class="ds-period" value="${x(r.period||'')}" placeholder="e.g. Jan 1 – Dec 31, 2025…"></td>
-            </tr>
-            <tr>
               <td class="ap2-field-label">Test Objective</td>
               <td><textarea class="ds-objective" placeholder="Objective of this sampling procedure…">${x(r.objective||'')}</textarea></td>
             </tr>
             <tr>
               <td class="ap2-field-label" style="vertical-align:top;padding-top:8px">Audit Procedure</td>
-              <td>${numRows(r.auditProcedure,'ds-proc-item','Audit procedure step…')}</td>
-            </tr>
-            <tr>
-              <td class="ap2-field-label" style="vertical-align:top;padding-top:8px">Work Performed</td>
-              <td>${numRows(r.workPerformed,'ds-work-item','Work performed description…')}</td>
-            </tr>
-            <tr>
-              <td class="ap2-field-label" style="vertical-align:top;padding-top:8px">Testing Attributes</td>
-              <td>${numRows(r.testingAttributes,'ds-attr-item','Attribute tested…')}</td>
+              <td>${numRows(r.auditProcedure,'ds-proc-item','Audit procedure step…',3)}</td>
             </tr>
           </tbody>
         </table>
@@ -4840,11 +4704,8 @@ ${manager ? manager + '\n' : ''}Verizon Internal Audit
       risk:           card.querySelector('.ds-risk')?.value || '',
       control:        card.querySelector('.ds-control')?.value || '',
       freq:           card.querySelector('.ds-freq')?.value || '',
-      period:         card.querySelector('.ds-period')?.value || '',
       objective:      card.querySelector('.ds-objective')?.value || '',
       auditProcedure: [...card.querySelectorAll('.ds-proc-item')].map(t=>t.value),
-      workPerformed:  [...card.querySelectorAll('.ds-work-item')].map(t=>t.value),
-      testingAttributes: [...card.querySelectorAll('.ds-attr-item')].map(t=>t.value),
     }));
   }
 
